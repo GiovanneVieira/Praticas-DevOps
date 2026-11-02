@@ -1,0 +1,45 @@
+@startuml
+title <size:24>Application</size>
+
+set separator none
+top to bottom direction
+
+<style>
+  root {
+    BackgroundColor: #ffffff
+    FontColor: #444444
+  }
+</style>
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Component>
+
+System_Boundary("Application_boundary", "Application", $tags="") {
+  Container_Boundary("Application.Application_boundary", "Application", $tags="") {
+    Component(Application.Application.Shared, "Shared", $techn="Module", $descr="", $tags="", $link="")
+    Component(Application.Application.Aluno, "Aluno", $techn="Module", $descr="", $tags="", $link="")
+    Component(Application.Application.Progressao, "Progressao", $techn="Module", $descr="", $tags="", $link="")
+    Component(Application.Application.Voucher, "Voucher", $techn="Module", $descr="", $tags="", $link="")
+    Component(Application.Application.Matricula, "Matricula", $techn="Module", $descr="", $tags="", $link="")
+    Component(Application.Application.Conquistas, "Conquistas", $techn="Module", $descr="", $tags="", $link="")
+    Component(Application.Application.Ranking, "Ranking", $techn="Module", $descr="", $tags="", $link="")
+  }
+
+}
+
+Rel(Application.Application.Ranking, Application.Application.Matricula, "listens to", $techn="", $tags="", $link="")
+Rel(Application.Application.Voucher, Application.Application.Aluno, "uses", $techn="", $tags="", $link="")
+Rel(Application.Application.Aluno, Application.Application.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(Application.Application.Progressao, Application.Application.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(Application.Application.Conquistas, Application.Application.Matricula, "listens to", $techn="", $tags="", $link="")
+Rel(Application.Application.Conquistas, Application.Application.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(Application.Application.Conquistas, Application.Application.Aluno, "uses", $techn="", $tags="", $link="")
+Rel(Application.Application.Matricula, Application.Application.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(Application.Application.Matricula, Application.Application.Aluno, "uses", $techn="", $tags="", $link="")
+Rel(Application.Application.Matricula, Application.Application.Voucher, "uses", $techn="", $tags="", $link="")
+Rel(Application.Application.Matricula, Application.Application.Progressao, "uses", $techn="", $tags="", $link="")
+
+SHOW_LEGEND(true)
+hide stereotypes
+@enduml
