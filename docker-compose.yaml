@@ -7,6 +7,12 @@ services:
     container_name: devops_api
     env_file:
       - .env.api
+    environment:
+      # Overrides de carga (Fase 2/4/5 do Desafio 1): rodadas k6 sobem com
+      # SPRING_JPA_SHOW_SQL=false; apendice de virtual threads sobe com
+      # SPRING_THREADS_VIRTUAL_ENABLED=true. Defaults preservam o dev diario.
+      - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL:-true}
+      - SPRING_THREADS_VIRTUAL_ENABLED=${SPRING_THREADS_VIRTUAL_ENABLED:-false}
     ports:
       - "8080:8080"
       - "5005:5005"
