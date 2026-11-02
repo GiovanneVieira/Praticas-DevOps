@@ -137,20 +137,27 @@ public class RankingFlowIntegrationTest extends AbstractIntegrationTest {
      * RF01 - cenario de aceitacao: o parametro top limita o tamanho do
      * ranking (leitura pesada precisa de janela controlada).
      *
-     * Dado ao menos dois alunos no ranking
-     * Quando o ranking e consultado com top=2
-     * Entao no maximo 2 entradas sao retornadas
+     * Dado dois alunos do cenario no ranking (alem de quaisquer outros)
+     * Quando o ranking e consultado com top=2 e com top=100
+     * Entao top=2 devolve exatamente 2 entradas
+     * E essas entradas sao o prefixo do ranking completo
      */
     @Test
     void rankingDeveLimitarATamanhoSolicitado(){
-        var aluno = this.criaAluno("ranking-limite@teste.com");
-        this.levarAteProgresso(aluno, 1);
+        var alunoA = this.criaAluno("ranking-limite-a@teste.com");
+        var alunoB = this.criaAluno("ranking-limite-b@teste.com");
+        this.levarAteProgresso(alunoA, 1);
+        this.levarAteProgresso(alunoB, 1);
 
-        var ranking = this.ranking("?top=2");
+        var completo = this.ranking("?top=100");
+        var limitado = this.ranking("?top=2");
 
-        assertTrue(ranking.size() <= 2, "top=2 nao deve retornar mais de 2 entradas");
-        assertTrue(ranking.stream().anyMatch(e -> e.alunoId().equals(aluno)),
-                "Com poucos alunos ranqueados, o aluno do cenario deve aparecer");
+        assertTrue(completo.size() >= 2, "O cenario garante ao menos 2 alunos ranqueados");
+        assertEquals(2, limitado.size(), "top=2 deve retornar exatamente 2 entradas");
+        assertEquals(
+                completo.subList(0, 2).stream().map(RankingResponseDTO::alunoId).toList(),
+                limitado.stream().map(RankingResponseDTO::alunoId).toList(),
+                "top=2 deve devolver o prefixo do ranking completo");
     }
 
     /**

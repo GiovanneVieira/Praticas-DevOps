@@ -65,6 +65,8 @@ public class ConclusaoCursoServiceTest {
     PoliticaProgressao politicaProgressao;
     @Mock
     RecompensasService recompensasService;
+    @Mock
+    org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     ConclusaoCursoService conclusaoCursoService;

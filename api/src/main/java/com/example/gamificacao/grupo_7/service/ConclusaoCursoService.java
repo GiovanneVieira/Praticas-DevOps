@@ -3,6 +3,7 @@ package com.example.gamificacao.grupo_7.service;
 import com.example.gamificacao.grupo_7.dto.matricula.ConcluirCursoRequestDTO;
 import com.example.gamificacao.grupo_7.dto.matricula.ConcluirCursoResponseDTO;
 import com.example.gamificacao.grupo_7.enums.CursoStatus;
+import com.example.gamificacao.grupo_7.event.CursoConcluidoEvent;
 import com.example.gamificacao.grupo_7.exception.aluno.AlunoNotFoundException;
 import com.example.gamificacao.grupo_7.exception.matricula.CursoJaConcluidoException;
 import com.example.gamificacao.grupo_7.exception.matricula.MatriculaNotFoundException;
@@ -16,6 +17,7 @@ import com.example.gamificacao.grupo_7.repository.MatriculaRepository;
 import com.example.gamificacao.grupo_7.service.progressao.PoliticaProgressao;
 import com.example.gamificacao.grupo_7.service.progressao.ResultadoProgressao;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,7 @@ public class ConclusaoCursoService {
     private final VoucherMapper voucherMapper;
     private final PoliticaProgressao politicaProgressao;
     private final RecompensasService recompensasService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ConcluirCursoResponseDTO concluir(UUID alunoId, UUID matriculaId, ConcluirCursoRequestDTO requestDTO){
@@ -57,7 +60,29 @@ public class ConclusaoCursoService {
         var resultado = this.politicaProgressao.avaliar(matricula.getCurso().getStatus(), aluno.getPlano(), concluidosAntes);
         var recompensa = this.concedeRecompensa(aluno, resultado);
 
+        this.publicaCursoConcluido(aluno, matricula);
+
         return this.montaResposta(matricula, aluno, recompensa, resultado);
+    }
+
+    /**
+     * RF01/RF02 (Desafio 1): publica o evento de dominio com um snapshot do
+     * estado final do aluno (pos-recompensas) para os consumidores livres
+     * (ranking, conquistas). Publicado apenas em conclusao aprovada: em
+     * reprovacao nada do estado de progresso muda. A publicacao acontece
+     * dentro da transacao; consumidores ouvem em AFTER_COMMIT.
+     */
+    private void publicaCursoConcluido(Aluno aluno, Matricula matricula){
+        if (matricula.getCurso().getStatus() != CursoStatus.CONCLUIDO){
+            return;
+        }
+        this.eventPublisher.publishEvent(new CursoConcluidoEvent(
+                aluno.getId(),
+                aluno.getName(),
+                aluno.getMoedas() == null ? 0 : aluno.getMoedas(),
+                aluno.getCursosConcluidos(),
+                aluno.getPlano()
+        ));
     }
 
     /**

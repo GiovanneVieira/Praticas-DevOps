@@ -5,11 +5,13 @@ import com.example.gamificacao.grupo_7.exception.aluno.EmailAlreadyExistsExcepti
 import com.example.gamificacao.grupo_7.exception.login.AuthenticationFailedException;
 import com.example.gamificacao.grupo_7.exception.matricula.MatriculaNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -54,6 +56,26 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
+
+        ErrorResponse response = new ErrorResponse(message, HttpStatus.BAD_REQUEST, request.getRequestURI(), LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Validacao de parametros de query/path (ex.: top do ranking) - tanto via
+     * Bean Validation classica quanto via validacao de metodo embutida do
+     * Spring MVC, ambas respondidas como 400 com mensagem explicativa.
+     */
+    @ExceptionHandler({ConstraintViolationException.class, HandlerMethodValidationException.class})
+    public ResponseEntity<ErrorResponse> handleParamValidation(Exception ex, HttpServletRequest request){
+        String message;
+        if (ex instanceof ConstraintViolationException violationEx){
+            message = violationEx.getConstraintViolations().stream()
+                    .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                    .collect(Collectors.joining("; "));
+        } else {
+            message = "Parametros invalidos: " + ex.getMessage();
+        }
 
         ErrorResponse response = new ErrorResponse(message, HttpStatus.BAD_REQUEST, request.getRequestURI(), LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
