@@ -1,0 +1,90 @@
+2026-11-02T20:14:17-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":0.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:17-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":0.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:17-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:17-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:17-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:22-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:22-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":41.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:22-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:22-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:22-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:27-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:27-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":72.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:27-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:27-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:27-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:32-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:32-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":104.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:32-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:32-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:32-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:37-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:37-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":136.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:37-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:37-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:37-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:42-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:42-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":168.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:42-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:42-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:42-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:47-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:47-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":199.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:47-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:47-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:47-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:53-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:53-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":199.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:53-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:53-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:53-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:14:58-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:14:58-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":199.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:14:58-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:14:58-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:14:58-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:15:04-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:15:04-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":199.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:15:04-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:15:04-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:15:04-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:15:10-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:15:10-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":199.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:15:10-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:15:10-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:15:10-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:15:15-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:15:15-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":199.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:15:15-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:15:15-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:15:15-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:15:21-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:15:21-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":198.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:15:21-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:15:21-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:15:21-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:15:52-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:15:52-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":192.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:15:52-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:15:52-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:15:52-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:16:22-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:16:22-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":197.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:16:22-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:16:22-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:16:22-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:16:52-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:16:52-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":188.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:16:52-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:16:52-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:16:52-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:17:22-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:17:22-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":71.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:17:22-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:17:22-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:17:22-03:00 tomcat.threads.current indisponivel
+2026-11-02T20:17:27-03:00 hikaricp.connections.active {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Active connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.active"}
+2026-11-02T20:17:27-03:00 hikaricp.connections.pending {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Pending threads","measurements":[{"statistic":"VALUE","value":71.0}],"name":"hikaricp.connections.pending"}
+2026-11-02T20:17:27-03:00 hikaricp.connections.max {"availableTags":[{"tag":"pool","values":["HikariPool-1"]}],"description":"Max connections","measurements":[{"statistic":"VALUE","value":10.0}],"name":"hikaricp.connections.max"}
+2026-11-02T20:17:27-03:00 tomcat.threads.busy indisponivel
+2026-11-02T20:17:27-03:00 tomcat.threads.current indisponivel
