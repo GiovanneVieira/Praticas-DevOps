@@ -1,0 +1,28 @@
+@startuml
+title <size:20>ANTES — Monólito em Camadas (AC1 + Fases 0-2)</size>
+set separator none
+top to bottom direction
+!include <C4/C4_Component>
+
+Container_Boundary("camadas", "Pacotes por CAMADA (transversais)") {
+  Component(controller, "controller", $techn="package", $descr="6 controllers + health")
+  Component(service, "service", $techn="package", $descr="7 services + listeners de evento + progressao/")
+  Component(repository, "repository", $techn="package", $descr="5 repositories")
+  Component(model, "model + mapper + dto + enums + exception", $techn="packages", $descr="compartilhados por TODAS as features")
+  Component(event, "event", $techn="package", $descr="CursoConcluidoEvent")
+}
+
+Rel(controller, service, "chama")
+Rel(service, repository, "usa")
+Rel(service, model, "compartilha")
+Rel(controller, model, "compartilha")
+Rel(repository, model, "compartilha")
+Rel(service, event, "publica/consome")
+
+note bottom of camadas
+  Fronteiras de FEATURE inexistentes: ranking, conquistas, matricula,
+  progressao e recompensas compartilham os mesmos pacotes transversais
+  (service/, repository/, model/). Qualquer classe pode alcançar
+  qualquer outra - a única barreira é a convenção, não verificação.
+end note
+@enduml

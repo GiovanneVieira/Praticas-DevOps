@@ -1,0 +1,163 @@
+package com.example.gamificacao.grupo_7.matricula.service;
+
+import com.example.gamificacao.grupo_7.matricula.MatriculaNotFoundException;
+import com.example.gamificacao.grupo_7.matricula.CursoJaConcluidoException;
+import com.example.gamificacao.grupo_7.matricula.CursoConcluidoEvent;
+import com.example.gamificacao.grupo_7.matricula.model.Recompensa;
+import com.example.gamificacao.grupo_7.matricula.repository.MatriculaRepository;
+import com.example.gamificacao.grupo_7.matricula.mapper.MatriculaMapper;
+import com.example.gamificacao.grupo_7.matricula.model.Matricula;
+import com.example.gamificacao.grupo_7.matricula.dto.ConcluirCursoResponseDTO;
+import com.example.gamificacao.grupo_7.matricula.dto.ConcluirCursoRequestDTO;
+import com.example.gamificacao.grupo_7.shared.CursoStatus;
+import com.example.gamificacao.grupo_7.aluno.AlunoNotFoundException;
+import com.example.gamificacao.grupo_7.voucher.VoucherMapper;
+import com.example.gamificacao.grupo_7.aluno.Aluno;
+import com.example.gamificacao.grupo_7.aluno.AlunoRepository;
+import com.example.gamificacao.grupo_7.progressao.PoliticaProgressao;
+import com.example.gamificacao.grupo_7.progressao.ResultadoProgressao;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
+
+/**
+ * Orquestra o caso de uso de conclusao de curso, ponto de convergencia dos tres
+ * ciclos ATDD (TDD1, TDD2 e TDD3) da planilha Template_ATDD_Gamificacao.xlsx:
+ * valida a matricula, aplica a nota, consulta a PoliticaProgressao (quem conhece
+ * as regras de cada cenario) e concede a recompensa correspondente via
+ * RecompensasService. Nao conhece os detalhes de nenhuma regra nem recompensa.
+ *
+ * Fluxo em comum aos cenarios:
+ *   Dado um aluno com assinatura basica ativa e uma matricula em curso da grade
+ *   Quando o aluno conclui o curso com uma nota final
+ *   Entao a PoliticaProgressao decide o resultado e as recompensas sao aplicadas
+ */
+@Service
+@RequiredArgsConstructor
+public class ConclusaoCursoService {
+
+    private final MatriculaRepository matriculaRepository;
+    private final AlunoRepository alunoRepository;
+    private final MatriculaMapper matriculaMapper;
+    private final VoucherMapper voucherMapper;
+    private final PoliticaProgressao politicaProgressao;
+    private final RecompensasService recompensasService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Transactional
+    public ConcluirCursoResponseDTO concluir(UUID alunoId, UUID matriculaId, ConcluirCursoRequestDTO requestDTO){
+        var aluno = this.buscaAluno(alunoId);
+        var matricula = this.buscaMatricula(alunoId, matriculaId);
+        this.validaCursoNaoConcluido(matricula);
+
+        int concluidosAntes = aluno.getCursosConcluidos();
+        this.aplicaNotaFinal(matricula, requestDTO.notaFinal());
+        this.atualizaProgresso(aluno, matricula, concluidosAntes);
+
+        var resultado = this.politicaProgressao.avaliar(matricula.getCurso().getStatus(), aluno.getPlano(), concluidosAntes);
+        var recompensa = this.concedeRecompensa(aluno, resultado);
+
+        this.publicaCursoConcluido(aluno, matricula);
+
+        return this.montaResposta(matricula, aluno, recompensa, resultado);
+    }
+
+    /**
+     * RF01/RF02 (Desafio 1): publica o evento de dominio com um snapshot do
+     * estado final do aluno (pos-recompensas) para os consumidores livres
+     * (ranking, conquistas). Publicado apenas em conclusao aprovada: em
+     * reprovacao nada do estado de progresso muda. A publicacao acontece
+     * dentro da transacao; consumidores ouvem em AFTER_COMMIT.
+     */
+    private void publicaCursoConcluido(Aluno aluno, Matricula matricula){
+        if (matricula.getCurso().getStatus() != CursoStatus.CONCLUIDO){
+            return;
+        }
+        this.eventPublisher.publishEvent(new CursoConcluidoEvent(
+                aluno.getId(),
+                aluno.getName(),
+                aluno.getMoedas() == null ? 0 : aluno.getMoedas(),
+                aluno.getCursosConcluidos(),
+                aluno.getPlano()
+        ));
+    }
+
+    /**
+     * TDD4 (GREEN): o progresso para o plano Premium e estado persistido do
+     * aluno (cursosConcluidos), incrementado a cada conclusao com nota
+     * superior a 7,0. Por ser persistido - e nao derivado da contagem de
+     * matriculas no historico - apagar ou desistir de um curso concluido
+     * nao reduz o progresso ja conquistado:
+     *
+     *   Dado um aluno com cursos concluidos no progresso
+     *   Quando ele apaga um curso do historico
+     *   Entao o progresso acumulado permanece intacto
+     */
+    private void atualizaProgresso(Aluno aluno, Matricula matricula, int concluidosAntes){
+        if (matricula.getCurso().getStatus() == CursoStatus.CONCLUIDO){
+            aluno.setCursosConcluidos(concluidosAntes + 1);
+            this.alunoRepository.save(aluno);
+        }
+    }
+
+    private Recompensa concedeRecompensa(Aluno aluno, ResultadoProgressao resultado){
+        return switch (resultado) {
+            case UPGRADE_PREMIUM -> this.recompensasService.concederRecompensasPremium(aluno);
+            case RECOMPENSA_RECURRENTE -> this.recompensasService.concederRecompensasRecorrentes(aluno);
+            case CURSO_BONUS_BASICO -> this.recompensasService.liberarCursosBonus(aluno);
+            case REPROVADO_SEM_PROGRESSO, SEM_RECOMPENSA -> Recompensa.vazia();
+        };
+    }
+
+    private void aplicaNotaFinal(Matricula matricula, Double notaFinal){
+        var curso = matricula.getCurso();
+        curso.setNotaFinal(notaFinal);
+        curso.conclui();
+        this.matriculaRepository.save(matricula);
+    }
+
+    private void validaCursoNaoConcluido(Matricula matricula){
+        var curso = matricula.getCurso();
+        if (curso.getStatus() == CursoStatus.CONCLUIDO){
+            throw new CursoJaConcluidoException("O curso " + curso.getName() + " ja foi concluido");
+        }
+    }
+
+    private ConcluirCursoResponseDTO montaResposta(Matricula matricula, Aluno aluno, Recompensa recompensa, ResultadoProgressao resultado){
+        var cursosLiberados = recompensa.cursosLiberados()
+                .stream()
+                .map(this.matriculaMapper::toResponseDTO)
+                .toList();
+
+        var voucherDTO = recompensa.voucher() != null
+                ? this.voucherMapper.toResponseDTO(recompensa.voucher())
+                : null;
+
+        return new ConcluirCursoResponseDTO(
+                matricula.getId(),
+                matricula.getCurso().getName(),
+                matricula.getCurso().getStatus(),
+                aluno.getPlano(),
+                aluno.getMoedas(),
+                cursosLiberados,
+                voucherDTO,
+                resultado == ResultadoProgressao.UPGRADE_PREMIUM,
+                recompensa.moedasConcedidas()
+        );
+    }
+
+    private Aluno buscaAluno(UUID alunoId){
+        return this.alunoRepository.findById(alunoId)
+                .orElseThrow(() -> new AlunoNotFoundException("Aluno com id " + alunoId + " nao encontrado"));
+    }
+
+    private Matricula buscaMatricula(UUID alunoId, UUID matriculaId){
+        return this.matriculaRepository.findByIdAndAlunoId(matriculaId, alunoId)
+                .orElseThrow(() -> new MatriculaNotFoundException(
+                        "Matricula " + matriculaId + " nao encontrada para o aluno " + alunoId));
+    }
+
+}

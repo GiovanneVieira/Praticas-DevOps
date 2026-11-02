@@ -1,5 +1,6 @@
 package com.example.gamificacao.grupo_7.aluno;
 
+import com.example.gamificacao.grupo_7.aluno.model.RA;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

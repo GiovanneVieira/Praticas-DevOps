@@ -1,6 +1,7 @@
 package com.example.gamificacao.grupo_7.voucher;
 
 
+import com.example.gamificacao.grupo_7.voucher.model.VoucherValue;
 import com.example.gamificacao.grupo_7.aluno.Aluno;
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,11 +1,11 @@
 package com.example.gamificacao.grupo_7;
 
-import com.example.gamificacao.grupo_7.aluno.AlunoRequestDTO;
-import com.example.gamificacao.grupo_7.aluno.AlunoResponseDTO;
-import com.example.gamificacao.grupo_7.matricula.ConcluirCursoRequestDTO;
-import com.example.gamificacao.grupo_7.matricula.MatriculaRequestDTO;
-import com.example.gamificacao.grupo_7.matricula.MatriculaResponseDTO;
-import com.example.gamificacao.grupo_7.ranking.RankingResponseDTO;
+import com.example.gamificacao.grupo_7.aluno.dto.AlunoRequestDTO;
+import com.example.gamificacao.grupo_7.aluno.dto.AlunoResponseDTO;
+import com.example.gamificacao.grupo_7.matricula.dto.ConcluirCursoRequestDTO;
+import com.example.gamificacao.grupo_7.matricula.dto.MatriculaRequestDTO;
+import com.example.gamificacao.grupo_7.matricula.dto.MatriculaResponseDTO;
+import com.example.gamificacao.grupo_7.ranking.dto.RankingResponseDTO;
 import com.example.gamificacao.grupo_7.shared.CursoStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

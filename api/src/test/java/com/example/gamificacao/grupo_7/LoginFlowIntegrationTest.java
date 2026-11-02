@@ -1,8 +1,8 @@
 package com.example.gamificacao.grupo_7;
 
-import com.example.gamificacao.grupo_7.aluno.AlunoRequestDTO;
-import com.example.gamificacao.grupo_7.aluno.AlunoResponseDTO;
-import com.example.gamificacao.grupo_7.aluno.LoginRequestDTO;
+import com.example.gamificacao.grupo_7.aluno.dto.AlunoRequestDTO;
+import com.example.gamificacao.grupo_7.aluno.dto.AlunoResponseDTO;
+import com.example.gamificacao.grupo_7.aluno.dto.LoginRequestDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
