@@ -52,6 +52,26 @@ export interface ConcluirCursoResponseDTO {
   moedasRecebidas: number
 }
 
+// RF01 (Desafio 1): entrada do ranking — read model alimentado por eventos
+export interface RankingEntryDTO {
+  posicao: number
+  alunoId: string
+  nome: string
+  moedas: number
+  cursosConcluidos: number
+}
+
+// RF02 (Desafio 1): item do catalogo de conquistas com estado do aluno
+export interface ConquistaDTO {
+  id: string
+  titulo: string
+  descricao: string
+  desbloqueada: boolean
+  concedidaEm: string | null
+  progressoAtual: number | null
+  progressoAlvo: number | null
+}
+
 async function parseError(response: Response, fallback: string) {
   try {
     const body = await response.json()
@@ -124,4 +144,12 @@ export async function desistirMatricula(alunoId: string, matriculaId: string): P
     method: 'DELETE',
   })
   if (!response.ok) throw new Error(await parseError(response, 'Não foi possível remover a matrícula.'))
+}
+
+export async function getRanking(top = 20): Promise<RankingEntryDTO[]> {
+  return request<RankingEntryDTO[]>(`/ranking?top=${encodeURIComponent(top)}`, {}, 'Não foi possível carregar o ranking.')
+}
+
+export async function getConquistas(alunoId: string): Promise<ConquistaDTO[]> {
+  return request<ConquistaDTO[]>(`/alunos/${encodeURIComponent(alunoId)}/conquistas`, {}, 'Não foi possível carregar as conquistas.')
 }
