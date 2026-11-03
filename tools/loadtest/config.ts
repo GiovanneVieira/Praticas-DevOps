@@ -13,7 +13,9 @@ const FASE = __ENV.FASE || 'sem-fase'
 export function rampaDeCarga(cenario: string): Options {
   return {
     scenarios: {
-      [`${FASE} · ${cenario}`]: {
+      // k6 exige nome de cenario identico a identificador (letras, numeros, _, -):
+      // o rotulo da fase usa hifen — o dashboard exibe "fase-cenario" ao vivo
+      [`${FASE}-${cenario}`]: {
         executor: 'ramping-vus',
         startVUs: 10,
         stages: [

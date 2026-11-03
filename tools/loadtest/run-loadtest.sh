@@ -67,6 +67,15 @@ trap cleanup EXIT
 # limpeza pre-emptiva: resíduos de execuções interrompidas do projeto de carga
 compose down -v --remove-orphans >/dev/null 2>&1 || true
 
+# Porta do dashboard k6: containers k6 zumbis do projeto seguram 5665 e
+# fazem todos os cenarios falharem com "port is already allocated".
+docker ps -q --filter "label=com.docker.compose.project=$PROJETO" --filter "name=k6" \
+  | xargs -r docker rm -f >/dev/null 2>&1 || true
+if ss -ltn 2>/dev/null | grep -q ':5665 '; then
+  echo "[loadtest] FALHA: a porta 5665 (dashboard k6) esta ocupada por processo fora do projeto de carga."
+  exit 1
+fi
+
 if curl -sf --max-time 2 http://localhost:8080/health >/dev/null 2>&1; then
   echo "[loadtest] FALHA: algo ja ocupa a porta 8080 (dev compose?). Campanhas exigem a maquina quieta."
   exit 1
