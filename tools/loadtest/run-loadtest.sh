@@ -13,6 +13,11 @@
 # ============================================================================
 set -euo pipefail
 
+# Git Bash no Windows (MSYS) traduz paths Unix ("/app/...") para paths do host
+# ("C:/Program Files/Git/app/...") antes de passar ao docker exec — corrompendo
+# todo path de container. Isto desativa a tradução; no Linux/macOS é no-op.
+export MSYS_NO_PATHCONV=1
+
 FASE=final
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJETO=pratica5-loadtest
