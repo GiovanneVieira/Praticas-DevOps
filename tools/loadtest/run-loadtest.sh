@@ -67,14 +67,11 @@ trap cleanup EXIT
 # limpeza pre-emptiva: resíduos de execuções interrompidas do projeto de carga
 compose down -v --remove-orphans >/dev/null 2>&1 || true
 
-# Porta do dashboard k6: containers k6 zumbis do projeto seguram 5665 e
-# fazem todos os cenarios falharem com "port is already allocated".
+# Containers k6 zumbis do projeto (o Docker 29.x ressuscita containers de
+# binds falhos) sao removidos antes de comecar; a porta do dashboard agora e
+# efemera, entao nao existe mais guard de porta fixa.
 docker ps -q --filter "label=com.docker.compose.project=$PROJETO" --filter "name=k6" \
   | xargs -r docker rm -f >/dev/null 2>&1 || true
-if ss -ltn 2>/dev/null | grep -q ':5665 '; then
-  echo "[loadtest] FALHA: a porta 5665 (dashboard k6) esta ocupada por processo fora do projeto de carga."
-  exit 1
-fi
 
 if curl -sf --max-time 2 http://localhost:8080/health >/dev/null 2>&1; then
   echo "[loadtest] FALHA: algo ja ocupa a porta 8080 (dev compose?). Campanhas exigem a maquina quieta."
@@ -113,10 +110,21 @@ compose --profile loadtest logs --no-color seed 2>&1 | tail -25 > "$EVIDENCIAS/s
 # saida propagada pelo sh -c do servico (0 ou 99-threshold => sucesso).
 for CENARIO in $CENARIOS; do
   echo "[loadtest] === cenario: $CENARIO ==="
+  # imprime a URL efemera do dashboard assim que o container subir
+  ( for _ in $(seq 1 40); do
+      cid=$(docker ps -q --filter "label=com.docker.compose.project=$PROJETO" --filter "name=k6-$CENARIO" | head -1)
+      if [ -n "$cid" ]; then
+        docker port "$cid" 5665 2>/dev/null | head -1 | sed 's/^0.0.0.0:/dashboard ao vivo: http:\/\//'
+        break
+      fi
+      sleep 1
+    done ) &
+  DASH_PID=$!
   # console do k6 direto do run (o --rm remove o container antes de um `logs`)
   retry compose --profile loadtest run --rm --no-deps --service-ports "k6-$CENARIO" \
     > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 \
-    || { tail -30 "$EVIDENCIAS/$CENARIO/k6-console.txt"; exit 1; }
+    || { kill "$DASH_PID" 2>/dev/null; tail -30 "$EVIDENCIAS/$CENARIO/k6-console.txt"; exit 1; }
+  kill "$DASH_PID" 2>/dev/null || true
   tail -14 "$EVIDENCIAS/$CENARIO/k6-console.txt"
 done
 compose stop metrics >/dev/null 2>&1 || true
