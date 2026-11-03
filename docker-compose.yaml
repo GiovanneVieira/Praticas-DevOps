@@ -142,6 +142,7 @@ services:
     volumes:
       - ./tools/loadtest:/scripts:ro
       - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/alunos-page:/out
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
     entrypoint: ["sh", "-c"]
     command:
       - >-
@@ -153,6 +154,7 @@ services:
     volumes:
       - ./tools/loadtest:/scripts:ro
       - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/login:/out
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
     entrypoint: ["sh", "-c"]
     command:
       - >-
@@ -164,6 +166,7 @@ services:
     volumes:
       - ./tools/loadtest:/scripts:ro
       - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/dashboard:/out
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
     entrypoint: ["sh", "-c"]
     command:
       - >-
@@ -175,17 +178,19 @@ services:
     volumes:
       - ./tools/loadtest:/scripts:ro
       - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/ranking:/out
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
     entrypoint: ["sh", "-c"]
     command:
       - >-
         echo "== cenario: ranking inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/ranking.ts; ec=$$?; echo "== cenario: ranking fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
-  k6-writeflow:
+  k6-write-flow:
     <<: *k6-cenario
-    container_name: loadtest_k6_writeflow
+    container_name: loadtest_k6_write_flow
     volumes:
       - ./tools/loadtest:/scripts:ro
       - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/write-flow:/out
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
     entrypoint: ["sh", "-c"]
     command:
       - >-
