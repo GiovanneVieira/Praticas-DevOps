@@ -64,6 +64,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# limpeza pre-emptiva: resíduos de execuções interrompidas do projeto de carga
+compose down -v --remove-orphans >/dev/null 2>&1 || true
+
 if curl -sf --max-time 2 http://localhost:8080/health >/dev/null 2>&1; then
   echo "[loadtest] FALHA: algo ja ocupa a porta 8080 (dev compose?). Campanhas exigem a maquina quieta."
   exit 1
