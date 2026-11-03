@@ -1,0 +1,2 @@
+virtual-threads: ATIVAS (executor classico http-nio-exec ausente; VirtualThread-unparker presente; jvm pid 64)
+dump: 27 threads no dump

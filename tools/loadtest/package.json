@@ -2,6 +2,7 @@
   "name": "pratica5-loadtest",
   "private": true,
   "description": "Harness de carga do Desafio 1 (k6). Execução: docker compose -p pratica5-loadtest --profile loadtest up (via run-loadtest.sh). O k6 roda .ts nativamente; este package existe para checagem estática local (npm run check).",
+  "type": "module",
   "scripts": {
     "check": "tsc --noEmit"
   },

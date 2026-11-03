@@ -38,3 +38,9 @@ Thumbs.db
 # Os arquivos .env do projeto (.env.api e .env.client) sao versionados de
 # forma intencional: contem apenas configuracao local de Docker, sem dados
 # sensiveis - por isso nenhuma regra de ignore para .env existe aqui.
+
+# k6: resultado.json e a saida BRUTA de pontos de metrica (GBs por rodada,
+# bloqueada pelo GitHub >100MB). Os artefatos analiticos (resumo.json,
+# dashboard.html) sao gerados pelo k6 e commitados normalmente; o wrapper
+# tambem extrai metricas-por-cenario.json antes de qualquer limpeza.
+docs/arquitetura/evidencias/**/resultado.json

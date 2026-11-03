@@ -1,0 +1,207 @@
+{
+    "metrics": {
+        "http_reqs": {
+            "count": 750639,
+            "rate": 1808.7550576933695
+        },
+        "iterations": {
+            "count": 431713,
+            "rate": 1040.2644576447235
+        },
+        "http_req_blocked": {
+            "min": 0.000832,
+            "med": 0.002785,
+            "max": 156.161334,
+            "p(90)": 0.004198,
+            "p(95)": 0.00529,
+            "avg": 0.023182507783367983
+        },
+        "checks": {
+            "fails": 2600,
+            "passes": 1071358,
+            "value": 0.9975790487151267
+        },
+        "http_req_duration": {
+            "avg": 452.079072268508,
+            "min": 0.708163,
+            "med": 207.379405,
+            "max": 60003.565215,
+            "p(90)": 671.0506630000001,
+            "p(95)": 891.5096416,
+            "thresholds": {
+                "p(95)<500": true
+            }
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_failed": {
+            "passes": 2100,
+            "fails": 748539,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0.0027976164308009576
+        },
+        "http_req_sending": {
+            "avg": 0.03361344391245106,
+            "min": 0.002846,
+            "med": 0.007975,
+            "max": 218.976199,
+            "p(90)": 0.016621,
+            "p(95)": 0.067397
+        },
+        "http_req_receiving": {
+            "min": 0,
+            "med": 0.156004,
+            "max": 300.260941,
+            "p(90)": 0.764609,
+            "p(95)": 1.503341,
+            "avg": 0.4850933473267619
+        },
+        "http_req_waiting": {
+            "avg": 451.5603654772752,
+            "min": 0.607253,
+            "med": 206.842265,
+            "max": 60003.552812,
+            "p(90)": 670.4910530000004,
+            "p(95)": 890.9547317999994
+        },
+        "iteration_duration": {
+            "med": 279.938645,
+            "max": 90001.920688,
+            "p(90)": 801.1106919999999,
+            "p(95)": 1086.6918307999983,
+            "avg": 592.7822585981215,
+            "min": 1.068271
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "max": 156.100389,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.01611946375421475,
+            "min": 0
+        },
+        "vus_max": {
+            "value": 2400,
+            "min": 100,
+            "max": 2400
+        },
+        "data_sent": {
+            "count": 76856847,
+            "rate": 185195.82746115705
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(90)": 663.4502306,
+            "p(95)": 872.2146391999997,
+            "avg": 366.7336632623086,
+            "min": 0.708163,
+            "med": 206.453717,
+            "max": 31155.326271
+        },
+        "vus": {
+            "min": 0,
+            "max": 1660,
+            "value": 0
+        },
+        "dropped_iterations": {
+            "count": 1405505,
+            "rate": 3386.7335395087644
+        },
+        "data_received": {
+            "rate": 2842904.643300918,
+            "count": 1179814309
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "login 200": {
+                    "path": "::login 200",
+                    "id": "48b06dc5cde7f6ebb606ad7da726a2a5",
+                    "passes": 7898,
+                    "fails": 0,
+                    "name": "login 200"
+                },
+                "aluno correto": {
+                    "name": "aluno correto",
+                    "path": "::aluno correto",
+                    "id": "ce9a8a44b93082c87b0a842124178f3d",
+                    "passes": 7898,
+                    "fails": 0
+                },
+                "aluno 200": {
+                    "name": "aluno 200",
+                    "path": "::aluno 200",
+                    "id": "5ca1f2b2c00b2c1efda02579100cc5ca",
+                    "passes": 105448,
+                    "fails": 0
+                },
+                "matriculas 200": {
+                    "name": "matriculas 200",
+                    "path": "::matriculas 200",
+                    "id": "168c572365d5783ae13e4917acf2ea07",
+                    "passes": 105448,
+                    "fails": 0
+                },
+                "vouchers 200": {
+                    "passes": 105448,
+                    "fails": 0,
+                    "name": "vouchers 200",
+                    "path": "::vouchers 200",
+                    "id": "dc6904098c3c94c4b2a6747afd29efc1"
+                },
+                "conquistas 200": {
+                    "name": "conquistas 200",
+                    "path": "::conquistas 200",
+                    "id": "671245bf161e7da60f7f42d4fbef387d",
+                    "passes": 105448,
+                    "fails": 0
+                },
+                "status 200": {
+                    "id": "fad9fa412b86fcb03bee97c80dcd61f1",
+                    "passes": 314921,
+                    "fails": 500,
+                    "name": "status 200",
+                    "path": "::status 200"
+                },
+                "20 entradas": {
+                    "path": "::20 entradas",
+                    "id": "64246fa2c28df5f8a8ef3552c8a694e8",
+                    "passes": 231418,
+                    "fails": 0,
+                    "name": "20 entradas"
+                },
+                "matricula 201": {
+                    "name": "matricula 201",
+                    "path": "::matricula 201",
+                    "id": "7690ff093eeb2a0624d03ae79a790ac3",
+                    "passes": 2582,
+                    "fails": 1124
+                },
+                "conclusao 200": {
+                    "name": "conclusao 200",
+                    "path": "::conclusao 200",
+                    "id": "de56df1ad6923997690fc5c567538f4d",
+                    "passes": 1346,
+                    "fails": 476
+                },
+                "20 itens": {
+                    "name": "20 itens",
+                    "path": "::20 itens",
+                    "id": "d2d4adddac86f28fca8fde0bce46d14c",
+                    "passes": 83503,
+                    "fails": 500
+                }
+            }
+    }
+}

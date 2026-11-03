@@ -1,0 +1,9 @@
+date: 2026-11-03T16:05:58-03:00
+harness: docker-compose profile loadtest (projeto pratica5-loadtest) — suite unica (dashboard estavel :5665)
+arquitetura: modulith + virtual threads + pool 50 (declarados no application.properties da API)
+verificacao-vt: virtual-threads: ATIVAS (executor classico http-nio-exec ausente; VirtualThread-unparker presente; jvm pid 64)
+executor: ramping-arrival-rate (taxas-alvo: login 333 | dashboard 5000 | ranking 10000 | write-flow 300 | alunos-page 10000)
+uname: Linux 7.0.0-38-generic x86_64 GNU/Linux / cpus: 12 / mem: 
+k6: k6 v2.3.0 (commit/e088784614, go1.27.1, linux/amd64)
+postgres: PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+jdk-api: openjdk version "21.0.3" 2024-04-16 LTS

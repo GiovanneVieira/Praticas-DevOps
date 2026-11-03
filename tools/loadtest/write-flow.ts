@@ -1,19 +1,14 @@
 import http from 'k6/http'
 import { check } from 'k6'
-import { BASE_URL, JSON_HEADERS, rampaDeCarga, uuidDoAluno } from './config.ts'
-
-export const options = rampaDeCarga('write-flow')
+import { BASE_URL, JSON_HEADERS, uuidDoAluno } from './config.ts'
 
 /**
- * Cenario 3 do Desafio 1: fluxo critico de escrita.
- * Cada iteracao matricula e conclui um curso de um aluno seedado,
- * exercitando o caminho completo: matricula -> conclusao -> progressao ->
- * recompensas -> evento -> listeners (ranking + conquistas).
- * Tags de nome normalizam a URL dinamica (UUID por aluno) — sem elas, o
- * dashboard/summary geraria uma serie por aluno (10k grupos).
+ * Fluxo crítico de escrita: cada iteração matricula e conclui um curso de um
+ * aluno seedado — matricula -> conclusao -> progressao -> recompensas ->
+ * evento -> listeners (ranking + conquistas). Tags de nome normalizam a URL
+ * dinamica (UUID por aluno) — sem elas, uma serie por aluno (10k grupos).
  */
-export default function (): void {
-  // distribui alunos distintos entre VUs/iteracoes (deterministico)
+export function cenarioWriteFlow(): void {
   const indice = ((__VU * 1_000_000 + __ITER) % 10_000) + 1
   const alunoId = uuidDoAluno(indice)
 

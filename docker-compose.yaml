@@ -35,13 +35,10 @@ services:
     env_file:
       - .env.api
     environment:
-      # Overrides de carga (Desafio 1): campanhas k6 sobem com
-      # SPRING_JPA_SHOW_SQL=false; a fase virtual-threads sobe com
-      # SPRING_THREADS_VIRTUAL_ENABLED=true; a fase tuning eleva o pool
-      # Hikari. Defaults preservam o dev diario.
+      # A arquitetura (VT, pool) vive no application.properties da API —
+      # fonte unica de verdade. Aqui resta apenas conveniencia de dev:
+      # campanhas de carga sobem com SPRING_JPA_SHOW_SQL=false.
       - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL:-true}
-      - SPRING_THREADS_VIRTUAL_ENABLED=${SPRING_THREADS_VIRTUAL_ENABLED:-false}
-      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-10}
     healthcheck:
       # Imagem dev (temurin alpine) tem busybox wget; start_period generoso
       # porque o dev target compila dentro do container a cada boot.
@@ -110,10 +107,11 @@ services:
   # ==========================================================================
   # Harness de carga do Desafio 1 (RF01/RF02) — perfil dedicado:
   #   docker compose -p pratica5-loadtest --profile loadtest up ...
-  # Isolado por nome de projeto (-p): volumes/rede próprios; o `down -v` das
-  # campanhas nunca toca o banco do dev. Orquestrado por tools/loadtest/run-loadtest.sh:
-  # seed 1x via `run`, cenarios sequenciais via `run --rm --no-deps` (minimo
-  # churn de daemon — o Docker 29.x tem bug de ciclo de vida sob `up` repetido).
+  # Isolado por nome de projeto (-p). Orquestrado por tools/loadtest/run-loadtest.sh:
+  # SUÍTE única (um processo k6, cenários escalonados por startTime no suite.ts)
+  # — dashboard ESTÁVEL em http://localhost:5665 pela campanha inteira; um
+  # único bind de porta por campanha (o Docker 29.x ressuscita containers de
+  # binds falhos em rajada — minimizado por design).
   # ==========================================================================
   seed:
     profiles: [loadtest]
@@ -140,65 +138,19 @@ services:
       api:
         condition: service_healthy
 
-  k6-alunos-page:
+  k6-suite:
     <<: *k6-cenario
-    container_name: loadtest_k6_alunos_page
+    container_name: loadtest_k6_suite
+    ports:
+      - "5665:5665"
     volumes:
       - ./tools/loadtest:/scripts:ro
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/alunos-page:/out
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-final}/suite:/out
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        echo "== cenario: alunos-page inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/alunos-page.ts; ec=$$?; echo "== cenario: alunos-page fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-
-  k6-login:
-    <<: *k6-cenario
-    container_name: loadtest_k6_login
-    volumes:
-      - ./tools/loadtest:/scripts:ro
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/login:/out
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
-    entrypoint: ["sh", "-c"]
-    command:
-      - >-
-        echo "== cenario: login inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/login.ts; ec=$$?; echo "== cenario: login fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-
-  k6-dashboard:
-    <<: *k6-cenario
-    container_name: loadtest_k6_dashboard
-    volumes:
-      - ./tools/loadtest:/scripts:ro
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/dashboard:/out
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
-    entrypoint: ["sh", "-c"]
-    command:
-      - >-
-        echo "== cenario: dashboard inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/dashboard.ts; ec=$$?; echo "== cenario: dashboard fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-
-  k6-ranking:
-    <<: *k6-cenario
-    container_name: loadtest_k6_ranking
-    volumes:
-      - ./tools/loadtest:/scripts:ro
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/ranking:/out
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
-    entrypoint: ["sh", "-c"]
-    command:
-      - >-
-        echo "== cenario: ranking inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/ranking.ts; ec=$$?; echo "== cenario: ranking fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-
-  k6-write-flow:
-    <<: *k6-cenario
-    container_name: loadtest_k6_write_flow
-    volumes:
-      - ./tools/loadtest:/scripts:ro
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/write-flow:/out
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
-    entrypoint: ["sh", "-c"]
-    command:
-      - >-
-        echo "== cenario: write-flow inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/write-flow.ts; ec=$$?; echo "== cenario: write-flow fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/suite.ts;
+        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   metrics:
     profiles: [loadtest]

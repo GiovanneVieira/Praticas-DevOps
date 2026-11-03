@@ -20,6 +20,9 @@ Projeto desenvolvido como parte da disciplina de Prática 5 de DevOps. Trata-se 
 
 - [Integrantes do Grupo](#-integrantes-do-grupo)
 - [Visão Geral e Arquitetura](#-visão-geral-e-arquitetura)
+- [Registro Arquitetural — B1 Architecture Lab (Desafio 1)](#-registro-arquitetural--b1-architecture-lab-desafio-1)
+- [📊 Evidências — índice rápido](#-evidências--índice-rápido)
+- [🧪 Teste de Carga (k6) — Runbook](tools/loadtest/README.md)
 - [Mapeamento de Portas e Serviços](#-mapeamento-de-portas-e-serviços)
 - [Pré-requisitos](#-pré-requisitos)
 - [Como Clonar o Repositório](#-como-clonar-o-repositório)
@@ -67,6 +70,216 @@ flowchart LR
 ```
 
 ---
+
+## 🏛 Registro Arquitetural — B1 Architecture Lab (Desafio 1)
+
+> Plataforma de Gamificação para Educação Continuada — evolução do MVP da AC1.
+> Registro cumulativo exigido pelo B1: RF/RNF → ASR → RPC → alternativas/trade-offs → ADR → C4 → evidência.
+> Regra de ouro: a decisão deve poder ser lida de trás para frente — o C4 é explicado pelo ADR; o ADR é sustentado pelos ASRs/RPCs; os ASRs derivam de RF/RNF; e a evidência demonstra que o raciocínio é plausível.
+> **Índice de evidências**: no [índice de evidências](#-evidências--índice-rápido).
+
+---
+
+### Desafio 1 — Drivers e Evolução do Core (Monólito em Camadas → **Monólito Modular**)
+
+#### 1. RF — o que o sistema precisa fazer
+
+| RF | Descrição | Estado |
+|---|---|---|
+| **RF01 Ranking** | Top-N de alunos por moedas (desempate por cursos concluídos), cresce mais que as demais funcionalidades | ✅ `GET /ranking?top=` |
+| **RF02 Conquistas** | Catálogo de conquistas por marcos (cursos/moedas/plano) com listagem e "como obter" | ✅ `GET /alunos/{id}/conquistas` |
+| Evolução AC1 | Cursos, matrículas, recompensas (moedas/vouchers/cursos bônus) seguem evoluindo | preservada |
+| Correção derivada da evidência | `GET /alunos` sem paginação (custo O(n) medido) | ✅ paginado (`?pagina=&tamanho=`, máx 100) |
+
+#### 2. RNF (FURPS+) — qualidades em jogo
+
+- **Performance**: leitura do ranking desproporcional às demais; p95 < 500 ms como meta local.
+- **Escalabilidade**: **100.000 usuários simultâneos** (premissa confirmada em aula; modelo em §7.0).
+- **Manutenibilidade**: 6 devs evoluindo ranking/cursos/recompensas simultaneamente.
+- Testabilidade e complexidade operacional — analisadas, **não selecionadas como ASR** (consequência, não driver).
+
+#### 3. ASR — requisitos arquiteturalmente significativos (máx. 3)
+
+| # | ASR | Como altera estrutura/comunicação/dados/implantação |
+|---|---|---|
+| ASR-1.1 | **Desempenho do ranking** | Read model dedicado (`ranking_entries`) alimentado por eventos + índice `(moedas DESC, cursos_concluidos DESC)` — leitura pesada não compete com as escritas do Core |
+| ASR-1.2 | **Escalabilidade evolutiva** (100k simultâneos) | Fronteiras por capacidade + leitura servida de read model escalável por réplicas; seams para extração seletiva futura sem big-bang |
+| ASR-1.3 | **Manutenibilidade (6 devs)** | Módulos + eventos: RF02 entrou como módulo novo + listener, zero mudança em código existente |
+
+#### 4. RPC — restrições e premissas
+
+| RPC | Implicação |
+|---|---|
+| Core em **Java/Spring Boot 4.1** (Java 21) | Evolução interna, não reescrita |
+| Equipe de **6 desenvolvedores** | Coordenação de serviços distribuídos proibitiva agora |
+| **PostgreSQL 16** + legado AC1 | Reaproveitar entidades/regras; contrato HTTP da AC1 preservado |
+| **100k usuários simultâneos** (confirmado em aula) | Modelo de carga em §7.0; leitura escala por réplicas; escrita tem teto por design |
+| Sem deploy independente comprovado | Evidência orienta; não há demanda real |
+
+#### 5. Alternativas e trade-offs
+
+| | (A) Monólito em Camadas | (B) Monólito Modular ← **decisão** | (C) Decomposição seletiva |
+|---|---|---|---|
+| Desempenho (ASR-1.1) | read model possível, sem fronteira que o proteja | read model + evento; leitura pesada isolada por módulo | o melhor para ranking isolado |
+| Escalabilidade (ASR-1.2) | bloco único; extração futura arriscada | bloco hoje, seams para extração | escala por capacidade |
+| Manutenibilidade (ASR-1.3) | camadas transversais | fronteiras verificadas em build (`verify()`) | fronteiras físicas, custo de coordenação |
+| Complexidade operacional | 1 deployável | 1 deployável | N deployáveis — desproporcional |
+| **Dados medidos** | A/B medido: **±4% vs (B)** em todos os endpoints (§7.2) | — | fora do escopo do mini-lab |
+
+**Decisão**: (B) — neutralidade de performance camadas×módulos **medida** (±4%); (C) injustificável para 6 devs sem demanda; (A) não protege os ASRs 1.2/1.3.
+
+#### 6. ADR-001 — Evoluir o Core para Monólito Modular (Spring Modulith)
+
+- **Contexto**: MVP em camadas crescendo para 100k simultâneos; ranking cresce mais; 6 devs; Spring Boot + PostgreSQL; legado AC1.
+- **Decisão**: Spring Modulith 2.1 — módulos por capacidade (`aluno`, `curso`→`matricula`, `voucher`, `progressao`, `ranking`, `conquistas`, `shared`), `@ApplicationModule(allowedDependencies)` verificado em build, comunicação híbrida: recompensas **síncronas** (contrato AC1 preservado) + efeitos de leitura via **`CursoConcluidoEvent`** consumido por `ranking` e `conquistas` (`AFTER_COMMIT` + `REQUIRES_NEW`).
+- **Consequências**:
+  - ✅ RF02 = módulo novo + listener, **zero mudança** em código existente (open/closed por módulo).
+  - ✅ Fronteiras quebram o build se violadas (antes do code review).
+  - ⚠️ Eventual consistency mínima no read model — aceitável (visões, nunca bloqueiam conclusão).
+  - ✅ **Paginação de `/alunos` executada** (da evidência: 60 rps/p95 3-5s/resposta 1,4MB → pós-fix medido ~1.3k rps — detalhe em §7.1).
+  - ✅ **Virtual threads + pool 50 adotados e declarados no `application.properties`** (a aplicação é dona da decisão; apenas **verifica** no runtime — §7.1).
+  - ⚠️ Escrita sustentada em escala é trabalho de **evento/fila (Desafio 4)** — a seam (`CursoConcluidoEvent`) já existe.
+
+#### 7. Evidência — carga (k6) e antes/depois de estrutura
+
+##### 7.0 Modelo de carga — 100k simultâneos traduzidos em engenharia
+
+Usuário simultâneo não dispara 1 req/s; a agregação depende do *think time*:
+
+| Cenário de uso | Think time | Carga agregada | Ranking (~50%) |
+|---|---|---|---|
+| A. passivo | 60s | ~1.700 rps | ~850 rps |
+| B. ativo | 30s | ~3.300 rps | ~1.700 rps |
+| C. intenso/polling | 10s | **~10.000 rps** | **~5.000 rps** |
+| D. burst (resultado) | — | picos ≫ 10k | concentra no ranking |
+
+**Dimensionamento por endpoint** (teto por instância medido na campanha final — §7.1; réplica = instância stateless):
+
+| Endpoint | Teto/instância (medido) | Mix C | Caminho p/ além |
+|---|---|---|---|
+| `GET /ranking` (read model) | **~5.000 rps** | ~5.000 rps | **1 instância cobre**; além: réplicas, réplica de leitura PG, cache do top-20 |
+| `POST /login` (BCrypt) | **~118/s** (CPU-bound, degrada graciosa: 0% erro) | burst matinal ~333/s | ~3 réplicas p/ burst |
+| Dashboard (4 GETs/lote) | **~1.450 lotes/s** (~5,8k req/s) | — | réplicas |
+| `GET /alunos` paginado | **~1.260 rps** (fila de pool: 50 conns × ~35ms) | share minoritário | pool/query |
+| Write-flow (conclusão) | **~53 it/s** (31,9% timeouts sob demanda 300) | ~100-160 rps | **assincronia (Desafio 4)** |
+
+##### 7.1 Campanha FINAL — arquitetura declarada, medida e verificada
+
+**Configuração**: Modulith + **VT + pool 50 declarados no `application.properties`** e **verificados no runtime** (jcmd na JVM da aplicação: executor clássico `http-nio-exec` ausente + `VirtualThread-unparker` presente — `docs/arquitetura/evidencias/desafio1/final/vt-verificacao.txt`). **Executor**: `ramping-arrival-rate` (demanda explícita em rps; iterações *dropadas* = taxa não sustentada), 5 cenários por taxa-alvo, 75s cada, seed 10k alunos.
+
+**Hardware da medição** (também em `ambiente.txt`): **AMD Ryzen 5 5600X (6 núcleos físicos / 12 threads), 32 GB RAM, NVMe, Ubuntu 24.04** — API, Postgres e k6 **na mesma máquina** (medição conservadora: CPU compartilhada; build de dev via Maven). ⚠️ **Caveat**: os números **absolutos** são 1:1 com este ferro (~833 rps/núcleo físico no teto do ranking) — em outro hardware, dimensione proporcionalmente ou re-rodando a bateria de testes. As **descobertas relativas** — neutralidade camadas×módulos (±4%), invariância do teto a threads/pool, classes de gargalo por endpoint — são as lições transferíveis.
+
+| Cenário | Alvo | **Entregue** | p95 | Falhas | Drops | Diagnóstico |
+|---|---|---|---|---|---|---|
+| `ranking` | 10.000/s | **~5.000/s** | 575ms | 0% | 524k | **Platô CPU do stack** — invariante a pool 10→50 e plataforma→VT (§7.2): threads/conexões não são o limite |
+| `dashboard` | 5.000 lotes/s | **~1.450/s** (5,8k req/s) | 810ms | 0% | 191k | Mesmo teto agregado do stack |
+| `alunos-page` | 10.000/s | **~1.260/s** | 413ms | 0,5% | 505k | **Fila de pool** (50 × ~35ms: COUNT+fetch) — classe de gargalo distinta |
+| `login` | 333/s | **~118/s** | 7.167ms | **0%** | 11k | **BCrypt CPU-bound**; degradação graciosa (fila 3,4s média, zero erro) |
+| `write-flow` | 300 it/s | **~53 it/s** | 30.002ms | **31,9%** | 16k | Custo transacional (recompensas + 2 listeners) — resposta arquitetural é evento (D4) |
+
+**Pinning**: **0 eventos `jdk.VirtualThreadPinned` (≥20ms)** com JFR na JVM correta — pgjdbc+JDK 21.0.3 não pinaram neste workload (`pinning-eventos.txt`). *Nota metodológica*: a primeira geração de dumps/JFR mirava o PID 1 (launcher Maven — a app roja como filho)
+
+**Conclusões** (detalhe no [índice de evidências](#-evidências--índice-rápido)):
+1. **Gargalos têm classes distintas por endpoint** — CPU-computacional (login, ranking) × fila-de-conexão (alunos-page) × custo-transacional (write). Tuning cego erraria o alvo 3×.
+2. **Teto do ranking invariante** em todas as configurações ⇒ escala por **réplica/cache**, não por threads/pool.
+3. **VT: par, não silver bullet** — sozinha (pool 10) colapsava por admissão; com pool 50 sustenta filas profundas com 0% de erro e sem pinning.
+4. **Contra o mix C**: ranking (endpoint mais quente) coberto por 1 instância; login burst → ~3 réplicas; write → Desafio 4.
+
+##### 7.2 Histórico das fases de decisão (dataset curado; brutos purgados)
+
+Fases intermediárias do mini-lab (mesmo protocolo de saturação por VUs, worktree do commit pré-modularização para o baseline):
+
+| Comparativo | Resultado | Leitura |
+|---|---|---|
+| Camadas × Módulos (A/B) | ranking 5.365↔5.358 rps · alunos 62,7↔64,9 · escrita 6,0↔5,7 — **±4%** | **Neutralidade estrutural medida**: a hipótese foi confirmada com dados |
+| Pool 10 → **50** + plataforma → **VT** | teto do ranking 5,3k → **5,6k** (≈ruído) | threads/conexões não são o gargalo do ranking |
+| VT + pool 10 (saturação antiga) | write 99% falhas rápidas; ranking 14% erros | admissão desbocada sem recurso real → **o par VT+pool é a decisão** |
+
+Evidências das fases históricas: **números consolidados nas tabelas deste registro** (abaixo e na campanha final) — os artefatos brutos não são versionados; cada fase é **regenerável** (`tools/loadtest/`, com worktree do commit pré-modularização para o baseline). Os `resultado.json` brutos (3–4 GB/rodada) são excluídos por padrão (`.gitignore`).
+
+##### 7.3 Antes/depois das dependências (evidência do mini-lab de estrutura)
+
+- **Antes** (`baseline-estrutura/antes-camadas.puml`): pacotes por camada transversais; qualquer classe alcança qualquer outra.
+- **Depois** (`pos-modulith-estrutura/components.puml` + `module-*.puml`, **gerados pelo Spring Modulith Documenter**): grafo acíclico verificado — `ranking → matricula (listens to)`, `conquistas → matricula (listens to)`, `matricula → {shared, aluno, voucher, progressao}`, `progressao → shared` (pura).
+- **O verificador expôs um ciclo semântico** `matricula ↔ progressao` escondido nas camadas; quebra: regras puras em `progressao`, orquestração em `matricula` (commit `890db22`).
+- **Encapsulamento**: raiz do módulo = API pública; subpacotes internos — `ApplicationModules.verify()` falha o build para acesso indevido.
+
+##### 7.4 Diagnóstico de pool (fases históricas)
+
+Nas fases com pool 10: `hikaricp.connections.active` **10/10 com até ~199 pending** em todos os cenários (`metricas-actuator.txt`) — o gargalo transversal que motivou o pool 50 adotado. Na campanha final o sidecar de métricas falhou silenciosamente (flake do Docker 29.x); a leitura de fila está preservada nas latências do k6 (aritmética: 50 conns × ~35ms ≈ 1,4k rps explicam o teto do alunos-page).
+
+#### 8. C4 — Container (decisão do Desafio 1)
+
+```mermaid
+flowchart TB
+    aluno(["👤 Aluno"])
+    subgraph plataforma["Plataforma LevelUp"]
+        spa["🖥️ SPA React [client]<br/>React 19 + Vite<br/>matrículas · recompensas · ranking · conquistas"]
+        core["☕ Core — Monólito Modular<br/>Java 21 · Spring Boot 4.1 · Modulith 2.1<br/>VT + pool 50 declarados<br/>módulos: aluno · matricula · voucher · progressao · ranking · conquistas · shared"]
+        pg[("🗄️ PostgreSQL 16<br/>alunos · matriculas · cursos · vouchers<br/>read models: ranking_entries · conquistas_concedidas<br/>event_publication")]
+    end
+    aluno -->|"HTTPS"| spa
+    spa -->|"REST /api — matriculas · conclusao · ranking · conquistas · vouchers · login"| core
+    core -->|"JPA · HikariCP (pool 50)"| pg
+```
+
+**Leitura**: a decisão do Desafio 1 é **interna ao Core** (um único deployável; escala por réplicas do mesmo artefato) — o que mudou foi a organização interna (módulos por capacidade + `CursoConcluidoEvent` materializado em `event_publication`), detalhada no Component do Desafio 2. O diagrama usa flowchart (render universal no GitHub) com a semântica C4-Container.
+
+---
+
+### Matriz cumulativa de ASRs (evolui a cada desafio)
+
+| Desafio | ASR | RNF de origem | Driver da decisão |
+|---|---|---|---|
+| 1 | ASR-1.1 Desempenho do ranking | Performance | read model via eventos (medido: ~5k rps/instância) |
+| 1 | ASR-1.2 Escalabilidade (100k simultâneos) | Escalabilidade | módulos verificáveis + escala por réplica |
+| 1 | ASR-1.3 Manutenibilidade (6 devs) | Manutenibilidade | eventos desacoplam novas capacidades |
+
+#
+---
+
+#### 📊 Evidências — índice rápido
+
+| Evidência | O que contém |
+|---|---|
+| [`final/suite/dashboard.html`](docs/arquitetura/evidencias/desafio1/final/suite/dashboard.html) | **Dashboard interativo** da suíte (abre no navegador; gráficos por cenário) |
+| [`final/suite/metricas-por-cenario.json`](docs/arquitetura/evidencias/desafio1/final/suite/metricas-por-cenario.json) | Análise completa extraída dos brutos (reqs/p95/falhas/drops por cenário) |
+| [`final/suite/resumo.json`](docs/arquitetura/evidencias/desafio1/final/suite/resumo.json) | Sumário exportado da suíte |
+| [`final/vt-verificacao.txt`](docs/arquitetura/evidencias/desafio1/final/vt-verificacao.txt) · [`pinning-eventos.txt`](docs/arquitetura/evidencias/desafio1/final/pinning-eventos.txt) · [`ambiente.txt`](docs/arquitetura/evidencias/desafio1/final/ambiente.txt) | VT verificada no runtime · pinning JFR · ambiente da medição |
+| [`antes-camadas.puml`](docs/arquitetura/evidencias/desafio1/baseline-estrutura/antes-camadas.puml) · [`pos-modulith-estrutura/*.puml`](docs/arquitetura/evidencias/desafio1/pos-modulith-estrutura/) | **Antes/depois das dependências** (o "depois" gerado pelo Modulith Documenter) |
+
+> **Fases históricas** (A/B camadas×módulos, VT+pool10): os números estão nas tabelas do [registro (§7.2)](#-72-histórico-das-fases-de-decisão-dataset-curado-brutos-purgados); os artefatos brutos não são versionados — **qualquer fase é regenerável** (`tools/loadtest/run-loadtest.sh`, incluindo o worktree do baseline pré-modularização). **Runbook do Teste de Carga** — pré-requisitos, cuidados com tamanho de arquivos, como dropar o ambiente e peculiaridades do Docker 29.x: [`tools/loadtest/README.md`](tools/loadtest/README.md).
+
+### 🎯 Conclusões do Desafio 1
+
+> **Em uma frase**: a decisão (Monólito Modular) suporta a meta confirmada de 100k simultâneos com réplicas de um único artefato — e a medição provou que nenhum dos "upgrades óbvios" (threads, conexões) moveria os tetos: os gargalos são **por endpoint, de classes diferentes, cada um com sua alavanca**.
+
+**1. A pergunta central tem resposta medida: NÃO precisa de microserviços.**
+O caminho mais quente do case (ranking, ~5k rps no mix C) é servido por **uma única instância dev** com o read model que a modularização introduziu; 2–3 réplicas cobrem burst e resiliência. A alternativa (C) não tem demanda real justificando — conclusão evidenciada, não opinião.
+
+**2. "Escalar a plataforma" é frase vazia sem medir por endpoint — os gargalos têm classes distintas:**
+
+| Classe | Endpoints | O que NÃO adianta | O que funciona |
+|---|---|---|---|
+| **CPU-computacional** | login (BCrypt ~118/s), ranking (stack ~5k/s) | threads, pool, VT — **provado pela invariância** do teto (5,3→5,6k) | réplicas; cache no top-20 |
+| **Fila de conexão** | alunos-page (~1,3k/s = 50 conns × ~35ms) | threads, VT | pool, query mais leve |
+| **Custo transacional** | write-flow (~53 it/s, 32% timeouts sob demanda 300) | tudo acima | **assincronia/eventos** — a seam (`CursoConcluidoEvent`) já existe |
+
+Tuning cego erraria o alvo três vezes; o teste por endpoint acerta.
+
+**3. Virtual threads: veredito nuançado e honesto.**
+Não movimentou tetos (correto — VT não cria CPU), mas sustentou **degradação graciosa**: login sob 3× a capacidade com fila de 3,4s e **0% de erros**, e **zero pinning ≥20ms** medido com JFR na JVM correta. A lição do percurso: VT *sozinha* (pool 10) colapsava por admissão; VT *pareada* com pool 50 comporta. **Nenhuma tecnologia sozinha — o par é a decisão.**
+
+**4. A evidência dirigiu três correções reais** (o ciclo que o laboratório pede):
+60 rps sem paginação → **paginação implementada** (teto pós-fix ~1,3k rps, 21×) · fila de ~200 no Hikari → **pool 50** · colapso de admissão VT+pool10 → **par adotado e declarado no `application.properties`**. A regra de ouro do documento — *evidência sustentando plausibilidade* — aconteceu três vezes.
+
+**5. Fronteiras conscientes** (trade-offs registrados, não buracos):
+write sustentado em escala é trabalho de **Desafio 4** (o evento já está no lugar); **soak** de longa duração fica como futuro; o sidecar de métricas falhou na rodada final (a leitura de fila está nas latências do k6 — nota honesta no §7.4).
+
+### Síntese para a Avaliação Final (AF)
+
+- **Levar**: Monólito Modular + eventos (base dos Desafios 2/4); read model do ranking (seam de extração se a escala exigir); **VT + pool 50** (par medido: filas profundas com 0% erro e zero pinning); k6 por taxa de chegada (reutilizável em qualquer decisão de capacidade).
+- **Não levar (ainda)**: decomposição em serviços (sem ASR que exija); cache do top-20 (próxima alavanca de ranking, 10-100×); soak de longa duração; assincronia da escrita (Desafio 4).
 
 ## 🔌 Mapeamento de Portas e Serviços
 
@@ -765,32 +978,50 @@ Cada teste carrega em javadoc o cenário Given/When/Then correspondente, e cada 
 Pratica5-DevOps/
 ├── .env.api.example             # Template de variáveis de ambiente da API
 ├── .env.client.example          # Template de variáveis de ambiente do Frontend
-├── docker-compose.yaml          # Orquestração dos serviços (api, client, postgres)
-├── README.md                    # Documentação principal do projeto
+├── docker-compose.yaml          # Orquestração: api, client, postgres + perfil `loadtest` (k6)
+├── README.md                    # Documentação principal + registro arquitetural do B1
 │
-├── api/                         # Backend em Spring Boot
+├── api/                         # Backend em Spring Boot — Monólito Modular (Spring Modulith)
 │   ├── dockerfile               # Multi-stage Dockerfile (dev, builder, prod)
 │   ├── pom.xml                  # Gerenciador de dependências Maven
 │   ├── mvnw / mvnw.cmd          # Maven Wrapper (Linux / Windows)
 │   └── src/
-│       ├── main/
-│       │   ├── java/com/example/gamificacao/grupo_7/
-│       │   │   ├── Application.java
-│       │   │   ├── controller/   # Controllers REST (AlunoController, HealthController)
-│       │   │   ├── enums/        # Enums de domínio (CursoStatus)
-│       │   │   ├── model/        # Entidades JPA (Aluno, Curso)
-│       │   │   ├── repository/   # Interfaces de repositório Spring Data
-│       │   │   └── service/      # Regras de negócio (AlunoService)
-│       │   └── resources/
-│       │       └── application.properties # Configurações da aplicação e datasource
-│       └── test/                # Testes de unidade e integração
+│       ├── main/java/com/example/gamificacao/grupo_7/
+│       │   ├── Application.java, SecurityConfig, GlobalExceptionHandler, HealthController
+│       │   ├── aluno/           # Módulo: cadastro, consulta e login (RA na raiz = API pública)
+│       │   ├── matricula/       # Módulo: matrícula/conclusão + CursoConcluidoEvent (API pública)
+│       │   ├── voucher/         # Módulo: vouchers como recompensa
+│       │   ├── progressao/      # Módulo: regras puras de progressão (sem infra)
+│       │   ├── ranking/         # RF01: read model consumidor do evento
+│       │   ├── conquistas/      # RF02: catálogo/concessão consumidora do evento
+│       │   └── shared/          # Tipos compartilhados (Plano, CursoStatus, BusinessException)
+│       │       # Cada módulo: service/ controller/ model/ repository/ dto/ mapper/ internos
+│       ├── main/resources/application.properties  # VT + pool 50 declarados (arquitetura da API)
+│       └── test/                # Unit (Mockito) + integração (Testcontainers) + ModularityTests
 │
-└── client/                      # Frontend em React + Vite + TypeScript
-    ├── dockerfile               # Multi-stage Dockerfile (deps, dev, build, production)
-    ├── package.json             # Dependências e scripts npm
-    ├── tsconfig.json            # Configuração TypeScript
-    ├── vite.config.ts           # Configuração do Vite
-    └── src/                     # Código-fonte React (App.tsx, main.tsx, assets)
+├── client/                      # Frontend em React + Vite + TypeScript
+│   ├── dockerfile               # Multi-stage Dockerfile (deps, dev, build, production)
+│   ├── package.json             # Dependências e scripts npm
+│   ├── tsconfig.json / vite.config.ts
+│   └── src/
+│       ├── components/ui/       # Modal, ConfirmModal, RewardModal, Icon
+│       ├── components/features/ # Home, Register, Login, Dashboard + painéis (Ranking, Conquistas...)
+│       ├── hooks/               # useAuth, useMatriculas, useVouchers, useConquistas, useRanking, usePage
+│       ├── context/AuthContext.tsx  # Sessão como fonte única de verdade
+│       └── services/api.ts      # Camada de API tipada
+│
+├── tools/
+│   └── loadtest/                # 🧪 Harness de carga k6 — ver README próprio (runbook completo)
+│       ├── README.md            # Como rodar, higiene de disco, limpar ambiente, Docker 29.x
+│       ├── suite.ts + config.ts # Suíte única (5 cenários por taxa-alvo, ramping-arrival-rate)
+│       ├── login|dashboard|ranking|write-flow|alunos-page.ts
+│       ├── seed.sql             # 10k alunos determinísticos (BCrypt real p/ login)
+│       └── run-loadtest.sh      # Wrapper: verificação VT, JFR, coleta de evidências
+│
+└── docs/
+    └── arquitetura/
+        ├── README.md            # Stub → registro vive no README raiz
+        └── evidencias/desafio1/ # Evidências finais + pumls antes/depois (índice no README raiz)
 ```
 
 ---

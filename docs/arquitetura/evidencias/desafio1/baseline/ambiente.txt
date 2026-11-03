@@ -1,8 +1,0 @@
-date: 2026-11-02T20:08:01-03:00
-uname: Linux 7.0.0-38-generic x86_64 GNU/Linux
-cpus: 12
-mem: 
-jdk: null object or invalid expression (fonte pom)
-postgres: PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
-k6: k6 v2.3.0 (commit/e088784614, go1.27.1, linux/amd64)
-virtual-threads: false
