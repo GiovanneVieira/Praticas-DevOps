@@ -10,7 +10,7 @@ export const options = rampaDeCarga
  * em ranking_entries, sem tocar a tabela de alunos.
  */
 export default function (): void {
-  const resposta = http.get(`${BASE_URL}/ranking?top=20`)
+  const resposta = http.get(`${BASE_URL}/ranking?top=20`, { tags: { name: 'GET /ranking?top=20' } })
   const entradas = resposta.json() as Array<{ posicao: number }>
   check(resposta, {
     'status 200': (r) => r.status === 200,

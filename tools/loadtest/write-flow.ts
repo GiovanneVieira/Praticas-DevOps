@@ -9,6 +9,8 @@ export const options = rampaDeCarga
  * Cada iteracao matricula e conclui um curso de um aluno seedado,
  * exercitando o caminho completo: matricula -> conclusao -> progressao ->
  * recompensas -> evento -> listeners (ranking + conquistas).
+ * Tags de nome normalizam a URL dinamica (UUID por aluno) — sem elas, o
+ * dashboard/summary geraria uma serie por aluno (10k grupos).
  */
 export default function (): void {
   // distribui alunos distintos entre VUs/iteracoes (deterministico)
@@ -18,7 +20,7 @@ export default function (): void {
   const matricula = http.post(
     `${BASE_URL}/alunos/${alunoId}/matriculas`,
     JSON.stringify({ nomeCurso: `Curso Carga VU${__VU} It${__ITER}` }),
-    JSON_HEADERS,
+    { ...JSON_HEADERS, tags: { name: 'POST /alunos/{id}/matriculas' } },
   )
   check(matricula, { 'matricula 201': (r) => r.status === 201 })
 
@@ -26,7 +28,7 @@ export default function (): void {
     const conclusao = http.patch(
       `${BASE_URL}/alunos/${alunoId}/matriculas/${matricula.json('id')}/conclusao`,
       JSON.stringify({ notaFinal: 9.0 }),
-      JSON_HEADERS,
+      { ...JSON_HEADERS, tags: { name: 'PATCH /alunos/{id}/matriculas/{mid}/conclusao' } },
     )
     check(conclusao, { 'conclusao 200': (r) => r.status === 200 })
   }

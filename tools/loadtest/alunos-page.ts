@@ -10,7 +10,7 @@ export const options = rampaDeCarga
  * (~60 rps, p95 3-5s, resposta ~1,4MB) quantifica o ganho da correcao.
  */
 export default function (): void {
-  const resposta = http.get(`${BASE_URL}/alunos?pagina=0&tamanho=20`)
+  const resposta = http.get(`${BASE_URL}/alunos?pagina=0&tamanho=20`, { tags: { name: 'GET /alunos?pagina&tamanho' } })
   const pagina = resposta.json('conteudo') as unknown[]
   check(resposta, {
     'status 200': (r) => r.status === 200,

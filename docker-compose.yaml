@@ -17,6 +17,7 @@ x-k6-cenario: &k6-cenario
     - "5665:5665"
   volumes:
     - ./tools/loadtest:/scripts:ro
+    - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/fase
 
 services:
   api:
@@ -144,8 +145,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/alunos-page.ts;
-        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+        echo "== cenario: alunos-page inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/alunos-page.ts; ec=$$?; echo "== cenario: alunos-page fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   k6-login:
     <<: *k6-cenario
@@ -156,8 +156,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/login.ts;
-        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+        echo "== cenario: login inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/login.ts; ec=$$?; echo "== cenario: login fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   k6-dashboard:
     <<: *k6-cenario
@@ -168,8 +167,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/dashboard.ts;
-        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+        echo "== cenario: dashboard inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/dashboard.ts; ec=$$?; echo "== cenario: dashboard fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   k6-ranking:
     <<: *k6-cenario
@@ -180,8 +178,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/ranking.ts;
-        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+        echo "== cenario: ranking inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/ranking.ts; ec=$$?; echo "== cenario: ranking fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   k6-writeflow:
     <<: *k6-cenario
@@ -192,8 +189,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/write-flow.ts;
-        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+        echo "== cenario: write-flow inicio $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/write-flow.ts; ec=$$?; echo "== cenario: write-flow fim $$(date -Iseconds) ==" >> /fase/metricas-actuator.txt; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   metrics:
     profiles: [loadtest]
