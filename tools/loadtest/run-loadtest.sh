@@ -68,9 +68,17 @@ until [ "$(docker inspect --format '{{.State.Health.Status}}' "$(compose ps -q a
   sleep 5
 done
 
-echo "[loadtest] subindo cadeia: seed -> k6-alunos -> k6-ranking -> k6-writeflow (+ metrics)"
+echo "[loadtest] subindo cadeia: seed -> cenarios sequenciais (+ metrics)"
 compose --profile loadtest up -d metrics
-compose --profile loadtest up --exit-code-from k6-writeflow k6-alunos k6-ranking k6-writeflow
+
+# Um `up` por cenario: --exit-code-from implica abort-on-container-exit, que
+# abortaria a cadeia inteira na primeira saida (o alunos) — os cenarios
+# precisam rodar em comandos separados, em sequencia.
+for CENARIO in alunos ranking write-flow; do
+  echo "[loadtest] === cenario: $CENARIO ==="
+  compose --profile loadtest up --exit-code-from "k6-$CENARIO" "k6-$CENARIO"
+  compose logs --no-color "k6-$CENARIO" > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 || true
+done
 compose stop metrics >/dev/null 2>&1 || true
 
 # ---------- coleta de evidencias ----------

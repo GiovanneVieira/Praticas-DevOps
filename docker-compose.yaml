@@ -5,6 +5,16 @@ x-k6-cenario: &k6-cenario
   user: "${K6_UID:-1000}:${K6_GID:-1000}"
   environment:
     BASE_URL: http://api:8080
+    # Web dashboard do k6: UI ao vivo em http://localhost:5665 durante o
+    # cenario + export de HTML auto-contido (/out/dashboard.html) como
+    # evidencia interativa versionada. Porta unica: os cenarios sao
+    # sequenciais (cadeia depends_on), logo nunca disputam 5665.
+    K6_WEB_DASHBOARD: "true"
+    K6_WEB_DASHBOARD_HOST: 0.0.0.0
+    K6_WEB_DASHBOARD_PORT: "5665"
+    K6_WEB_DASHBOARD_EXPORT: /out/dashboard.html
+  ports:
+    - "5665:5665"
   volumes:
     - ./tools/loadtest:/scripts:ro
 
