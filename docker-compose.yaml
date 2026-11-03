@@ -32,9 +32,11 @@ services:
     environment:
       # Overrides de carga (Desafio 1): campanhas k6 sobem com
       # SPRING_JPA_SHOW_SQL=false; a fase virtual-threads sobe com
-      # SPRING_THREADS_VIRTUAL_ENABLED=true. Defaults preservam o dev diario.
+      # SPRING_THREADS_VIRTUAL_ENABLED=true; a fase tuning eleva o pool
+      # Hikari. Defaults preservam o dev diario.
       - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL:-true}
       - SPRING_THREADS_VIRTUAL_ENABLED=${SPRING_THREADS_VIRTUAL_ENABLED:-false}
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-10}
     healthcheck:
       # Imagem dev (temurin alpine) tem busybox wget; start_period generoso
       # porque o dev target compila dentro do container a cada boot.
@@ -104,8 +106,9 @@ services:
   # Harness de carga do Desafio 1 (RF01/RF02) — perfil dedicado:
   #   docker compose -p pratica5-loadtest --profile loadtest up ...
   # Isolado por nome de projeto (-p): volumes/rede próprios; o `down -v` das
-  # campanhas nunca toca o banco do dev. Orquestrado por tools/loadtest/run-loadtest.sh.
-  # Cadeia: seed (após schema do Hibernate) -> k6-alunos -> k6-ranking -> k6-writeflow.
+  # campanhas nunca toca o banco do dev. Orquestrado por tools/loadtest/run-loadtest.sh:
+  # seed 1x via `run`, cenarios sequenciais via `run --rm --no-deps` (minimo
+  # churn de daemon — o Docker 29.x tem bug de ciclo de vida sob `up` repetido).
   # ==========================================================================
   seed:
     profiles: [loadtest]
@@ -159,9 +162,6 @@ services:
       - >-
         k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/ranking.ts;
         ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-    depends_on:
-      k6-alunos:
-        condition: service_completed_successfully
 
   k6-writeflow:
     <<: *k6-cenario
@@ -174,9 +174,6 @@ services:
       - >-
         k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/write-flow.ts;
         ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-    depends_on:
-      k6-ranking:
-        condition: service_completed_successfully
 
   metrics:
     profiles: [loadtest]

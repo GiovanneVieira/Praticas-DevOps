@@ -84,19 +84,18 @@ done
 echo "[loadtest] subindo metrics + seed"
 retry compose --profile loadtest up -d metrics
 
-# Seed como FASE (nao dependencia por cenario): `up <cenario>` reiniciaria o
-# servico one-shot ja concluido e o seed (nao idempotente a nivel de INSERT)
-# falharia por chave duplicada. Roda uma unica vez, ate completar.
-compose --profile loadtest up --exit-code-from seed seed
-compose logs --no-color seed 2>&1 | tail -25 > "$EVIDENCIAS/seed-output.txt" || true
+# Seed como FASE via `run` (nao `up`): cada `up` reconcilia o projeto inteiro
+# e o Docker 29.8.2 tem bug de ciclo de vida (ghost "No such container") sob
+# esse churn — `run --rm --no-deps` cria so o container necessario.
+compose --profile loadtest run --rm --no-deps seed 2>&1 | tee "$EVIDENCIAS/seed-run.log" | tail -8
+compose --profile loadtest logs --no-color seed 2>&1 | tail -25 > "$EVIDENCIAS/seed-output.txt" || true
 
-# Um `up` por cenario: --exit-code-from implica abort-on-container-exit, que
-# abortaria a cadeia inteira na primeira saida (o alunos) — os cenarios
-# precisam rodar em comandos separados, em sequencia.
+# Um `run` por cenario: minimo churn de daemon, sem reconciliacao do projeto,
+# saida propagada pelo sh -c do servico (0 ou 99-threshold => sucesso).
 for CENARIO in alunos ranking write-flow; do
   echo "[loadtest] === cenario: $CENARIO ==="
-  retry compose --profile loadtest up --exit-code-from "k6-$CENARIO" "k6-$CENARIO"
-  compose logs --no-color "k6-$CENARIO" > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 || true
+  retry compose --profile loadtest run --rm --no-deps --service-ports "k6-$CENARIO"
+  compose --profile loadtest logs --no-color "k6-$CENARIO" > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 || true
 done
 compose stop metrics >/dev/null 2>&1 || true
 
