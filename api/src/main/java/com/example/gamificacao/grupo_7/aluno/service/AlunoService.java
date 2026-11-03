@@ -7,13 +7,14 @@ import com.example.gamificacao.grupo_7.aluno.AlunoNotFoundException;
 import com.example.gamificacao.grupo_7.aluno.model.RA;
 import com.example.gamificacao.grupo_7.aluno.dto.LoginRequestDTO;
 import com.example.gamificacao.grupo_7.aluno.dto.AlunoResponseDTO;
+import com.example.gamificacao.grupo_7.aluno.dto.AlunosPaginadoResponseDTO;
 import com.example.gamificacao.grupo_7.aluno.dto.AlunoRequestDTO;
 import com.example.gamificacao.grupo_7.aluno.mapper.AlunoMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -44,14 +45,20 @@ public class AlunoService {
         return this.alunoMapper.toResponseDTO(aluno);
     }
 
-    public List<AlunoResponseDTO> getAlunos(){
-
-        return this.alunoRepository
-                .findAll()
-                .stream()
-                .map(alunoMapper::toResponseDTO)
-                .toList();
-
+    /**
+     * Listagem paginada: janela sob controle do chamador (ate 100 por pagina)
+     * — nunca a base inteira. Mapeia a Page do Spring Data para DTO proprio,
+     * sem vazar tipos de persistencia no contrato.
+     */
+    public AlunosPaginadoResponseDTO getAlunos(int pagina, int tamanho){
+        var resultado = this.alunoRepository.findAll(PageRequest.of(pagina, tamanho));
+        return new AlunosPaginadoResponseDTO(
+                resultado.getContent().stream().map(alunoMapper::toResponseDTO).toList(),
+                resultado.getNumber(),
+                resultado.getSize(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages()
+        );
     }
 
     /**

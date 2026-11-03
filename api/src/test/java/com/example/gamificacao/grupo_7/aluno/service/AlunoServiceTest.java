@@ -135,18 +135,38 @@ public class AlunoServiceTest {
         assertThrows(AlunoNotFoundException.class, () -> this.alunoService.getAlunoByRA("2026999"));
     }
 
+    /**
+     * Listagem paginada (GREEN da correcao apontada pela evidencia de carga
+     * do Desafio 1: GET /alunos sem janela tinha custo O(n) com a base):
+     *
+     *   Dado uma pagina de resultado do repositorio com totais
+     *   Quando a listagem e consultada com pagina/tamanho
+     *   Entao o DTO devolve o conteudo mapeado e os totais (7 itens, 4 paginas de 2)
+     */
     @Test
-    void deveListarAlunos(){
-        var aluno = this.buildAlunoSalvo();
-        var responseEsperada = new AlunoResponseDTO(aluno.getId(), "teste", aluno.getRa().getRa(), Plano.BASICO, aluno.getMoedas(), aluno.getCursosConcluidos());
+    void deveListarAlunosPaginados(){
+        var aluno1 = this.buildAlunoSalvo();
+        var aluno2 = Aluno.builder()
+                .id(UUID.randomUUID()).name("Segundo").email("b@t.com")
+                .password("x").ra(new RA("2026002")).plano(Plano.BASICO)
+                .moedas(0).cursosConcluidos(0).build();
+        var dto1 = new AlunoResponseDTO(aluno1.getId(), "teste", aluno1.getRa().getRa(), Plano.BASICO, aluno1.getMoedas(), aluno1.getCursosConcluidos());
+        var dto2 = new AlunoResponseDTO(aluno2.getId(), "Segundo", aluno2.getRa().getRa(), Plano.BASICO, aluno2.getMoedas(), aluno2.getCursosConcluidos());
+        var paginaDoRepo = new org.springframework.data.domain.PageImpl<>(
+                List.of(aluno1, aluno2), org.springframework.data.domain.PageRequest.of(1, 2), 7);
 
-        when(this.alunoRepository.findAll()).thenReturn(List.of(aluno));
-        when(this.alunoMapper.toResponseDTO(aluno)).thenReturn(responseEsperada);
+        when(this.alunoRepository.findAll(org.springframework.data.domain.PageRequest.of(1, 2))).thenReturn(paginaDoRepo);
+        when(this.alunoMapper.toResponseDTO(aluno1)).thenReturn(dto1);
+        when(this.alunoMapper.toResponseDTO(aluno2)).thenReturn(dto2);
 
-        var alunos = this.alunoService.getAlunos();
+        var pagina = this.alunoService.getAlunos(1, 2);
 
-        assertEquals(1, alunos.size());
-        assertEquals("teste", alunos.getFirst().name());
+        assertEquals(2, pagina.conteudo().size());
+        assertEquals("teste", pagina.conteudo().getFirst().name());
+        assertEquals(1, pagina.pagina());
+        assertEquals(2, pagina.tamanho());
+        assertEquals(7, pagina.totalElementos());
+        assertEquals(4, pagina.totalPaginas());
     }
 
     /**
