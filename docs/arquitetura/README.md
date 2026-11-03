@@ -50,7 +50,7 @@
 | Escalabilidade (ASR-1.2) | escala como um bloco único; extração futura arriscada | escala como um bloco hoje, com seams prontas para extração | escala por capacidade |
 | Manutenibilidade 6 devs (ASR-1.3) | camadas transversais: toda feature cruza controller/service/repository | fronteiras por capacidades + verificação automática (Spring Modulith `verify()`) | frontieras físicas, mas coordenação de 6 devs em N deployáveis |
 | Complexidade operacional | 1 deployável (mínimo) | 1 deployável (mínimo) | N deployáveis, rede, consistência — custo desproporcional |
-| Dados medidos (k6, idêntico nas duas fases) | **baseline: ver §7** | **pós-modulith: ver §7** (hipótese: ≈ neutro em RPS) | não medido (fora de escopo do mini-lab) |
+| Dados medidos (k6, idêntico nas duas fases) | ver §7.1: 62,7 vs 64,9 rps (`/alunos`) · 5.365 vs 5.358 rps (`/ranking`) · 6,0 vs 5,7 rps (escrita) — **≈ neutro (±4%, ruído)** | não medido (fora de escopo do mini-lab) |
 
 **Decisão do Tech Lead**: (B). Não há necessidade comprovada de escala/deploy independente — a hipótese de neutralidade de performance entre camadas e módulos foi **medida** (§7) e confirmada/refutada; a complexidade distribuída de (C) não é justificável para 6 devs sem demanda real. (A) foi descartada por não proteger os ASRs 1.2/1.3 (fronteiras inexistentes → regressão estrutural garantida com o crescimento do time/produto).
 
@@ -75,24 +75,37 @@
 
 #### 7.1 Comparativo camadas × módulos (mesmo protocolo, só a estrutura variou)
 
-<!-- PREENCHER: tabela comparativa baseline vs pos-modulith -->
+Fonte: `resumo.json`/`k6-console.txt` por cenário em `evidencias/desafio1/{baseline,pos-modulith}/` (p99 não exportado pelo summary-export; p90/p95/max conforme k6). Falhas do write-flow = timeouts de 30s na fila do pool sob 200 VUs.
 
-| Cenário | Fase | RPS | p95 (ms) | p99 (ms) | Erros | Gargalo observado |
+| Cenário | Fase | RPS | p95 (ms) | máx (ms) | Erros | Gargalo observado (§7.3) |
 |---|---|---|---|---|---|---|
-| `GET /ranking?top=20` | baseline (camadas) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `GET /ranking?top=20` | pós-modulith | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `GET /alunos` | baseline (camadas) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `GET /alunos` | pós-modulith | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `POST matrícula → PATCH conclusão` | baseline (camadas) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `POST matrícula → PATCH conclusão` | pós-modulith | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `GET /ranking?top=20` | baseline (camadas) | **5.365,4** | 102,2 | 445,7 | 0,00% | HikariCP 10/10, ~187 pending |
+| `GET /ranking?top=20` | pós-modulith | **5.357,8** | 102,6 | 469,4 | 0,00% | idêntico |
+| `GET /alunos` | baseline (camadas) | 62,7 | 3.977,8 | 10.340,9 | 0,00% | resposta ~1,4 MB (10k alunos sem paginação) + pool |
+| `GET /alunos` | pós-modulith | 64,9 | 3.693,6 | 9.316,4 | 0,00% | idêntico |
+| `POST matrícula → PATCH conclusão` | baseline (camadas) | 6,0 | 30.013,0 | 60.001,6 | **63,84%** | pool 10/10, ~199 pending; caminho transacional pesado |
+| `POST matrícula → PATCH conclusão` | pós-modulith | 5,7 | 30.011,4 | 60.001,0 | **61,07%** | idêntico |
+
+**Leitura**: diferenças de ±4% entre as fases — dentro do ruído de medição. A hipótese da equipe (**"performance entre monólito em camadas e modular não deve ter mudança relevante"**) foi **confirmada com dados**: a modularização foi estruturalmente neutra; o que governa o throughput é o pool de conexões e o custo por requisição, não a organização de pacotes. O read model do ranking (ASR-1.1) entrega **5,3k rps com p95 ~100 ms** — 86× o throughput do `/alunos` sem paginação, que carrega o custo de serializar a base inteira (~1,4 MB/resposta).
 
 #### 7.2 Antes/depois das dependências (a evidência do mini-lab)
 
-<!-- PREENCHER: diagrama PlantUml gerado pelo Documenter do Modulith + explicacao do antes -->
+- **Antes** (`evidencias/desafio1/baseline-estrutura/antes-camadas.puml`): pacotes por **camada** transversais — `controller/`, `service/`, `repository/`, `model/` compartilhados por todas as features; nenhuma fronteira de capacidade; qualquer classe alcança qualquer outra por construção.
+- **Depois** (`evidencias/desafio1/pos-modulith-estrutura/components.puml` + `module-*.puml`, **gerados pelo próprio Spring Modulith Documenter a partir do bytecode**): 7 módulos com grafo acíclico verificado em build — `ranking → matricula (listens to)`, `conquistas → matricula (listens to)` (o evento `CursoConcluidoEvent`), `matricula → {shared, aluno, voucher, progressao}`, `progressao → shared` (regras puras, zero infra), `voucher → {shared, aluno}`, `aluno → shared`.
+- **O refactor que o verificador forçou** (evidência no histórico `890db22`): a estrutura em camadas escondia um **ciclo semântico** `matricula ↔ progressao` (a `RecompensasService` criava matrículas). A modularização o expôs; a quebra: regras puras isoladas em `progressao`, orquestração de concessão (`RecompensasService`, `Recompensa`) em `matricula` junto do caso de uso que a dispara.
+- **Encapsulamento**: pacote-raiz do módulo = API pública; subpacotes (`service/`, `controller/`, `model/`, `dto/`...) são **internos** — `ApplicationModules.verify()` (rodando em `mvnw verify` via `ModularityTests`) falha o build para dependência não declarada **ou** acesso a tipo interno.
 
 #### 7.3 Métricas Actuator no pico (diagnóstico do gargalo)
 
-<!-- PREENCHER: hikari/tomcat capturados -->
+Captura a cada 5s durante cada cenário (`metricas-actuator.txt` por cenário/fase). **Picos observados, idênticos nas duas fases**:
+
+| Métrica | alunos | ranking | write-flow |
+|---|---|---|---|
+| `hikaricp.connections.active` | **10/10** | **10/10** | **10/10** |
+| `hikaricp.connections.pending` (pico) | 189 | 187 | 199 |
+| `tomcat.threads.busy` | satura nos 200 VUs | segue os VUs | satura nos 200 VUs |
+
+**Diagnóstico**: o gargalo transversal é o **pool HikariCP padrão (10 conexões)** — em todos os cenários o pool fica 10/10 com até ~200 threads presas na fila. No write-flow isso vira colapso (timeouts de 30s, ~62% de falhas sob 200 VUs, caminho transacional pesado: matrícula + progressão + recompensas recorrentes a cada 12 cursos + evento + 2 listeners em `REQUIRES_NEW`). No `/alunos` soma-se o custo de serializar ~10k entidades por resposta. **Consequência registrada no ADR**: o tuning de pool/paginação é trabalho futuro com receita concreta (consequências do ADR-001); a virtual threads (§7.4) não resolve pool saturado — o teto continua sendo o Hikari.
 
 #### 7.4 Apêndice — virtual threads (Java 21)
 
