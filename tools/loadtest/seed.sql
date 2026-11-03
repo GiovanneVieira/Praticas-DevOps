@@ -6,7 +6,8 @@
 --   - plano PREMIUM a partir de 12 cursos concluidos
 -- IDs deterministicos (0000a000-0000-4000-8000-<seq em 12 digitos>) para que
 -- os scripts k6 enderecem alunos pelo indice sem consulta previa.
--- OBS: password e placeholder (carga nao faz login; endpoints sao permitAll).
+-- OBS: password e hash BCrypt REAL de '123456' (custo 10) — o cenario login
+-- exercita a verificacao criptografica de verdade (~100ms CPU por tentativa).
 -- ============================================================================
 
 -- Idempotente: re-execucoes (accidentais ou manuais) recomecam do zero.
@@ -25,7 +26,7 @@ SELECT
     ('0000a000-0000-4000-8000-' || lpad(s::text, 12, '0'))::uuid,
     'Aluno Carga ' || s::text,
     'aluno.carga.' || s::text || '@gamificacao.local',
-    'senha-nao-usada-em-carga',
+    '$2a$10$KY4SCjhUGuVfmi5OKg2pr.9OQJZQCGB8sU168iznPkROi649Ndi9K',
     lpad(s::text, 6, '0'),
     CASE WHEN cursos >= 12 THEN 'PREMIUM' ELSE 'BASICO' END,
     3 * (cursos / 12),

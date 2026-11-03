@@ -135,21 +135,41 @@ services:
       api:
         condition: service_healthy
 
-  k6-alunos:
+  k6-alunos-page:
     <<: *k6-cenario
-    container_name: loadtest_k6_alunos
+    container_name: loadtest_k6_alunos_page
     volumes:
       - ./tools/loadtest:/scripts:ro
-      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/alunos:/out
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/alunos-page:/out
     entrypoint: ["sh", "-c"]
-    # saida 99 (threshold cruzado) e achado, nao erro de execucao
     command:
       - >-
-        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/alunos.ts;
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/alunos-page.ts;
         ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
-    depends_on:
-      api:
-        condition: service_healthy
+
+  k6-login:
+    <<: *k6-cenario
+    container_name: loadtest_k6_login
+    volumes:
+      - ./tools/loadtest:/scripts:ro
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/login:/out
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/login.ts;
+        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+
+  k6-dashboard:
+    <<: *k6-cenario
+    container_name: loadtest_k6_dashboard
+    volumes:
+      - ./tools/loadtest:/scripts:ro
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/dashboard:/out
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/dashboard.ts;
+        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
 
   k6-ranking:
     <<: *k6-cenario

@@ -21,10 +21,18 @@ case "$FASE" in
     # código pré-modularização (RF01+RF02 verdes em camadas) num worktree
     WORKTREE=/tmp/opencode/baseline-camadas
     git -C "$REPO_ROOT" worktree add --force "$WORKTREE" 5338338 >/dev/null
+    # alunos-page fica fora: o worktree é pré-paginação (comparar confundiria variáveis)
+    CENARIOS="login dashboard ranking write-flow"
     ;;
-  pos-modulith|virtual-threads) ;;
-  *) echo "fase invalida: $FASE"; exit 1 ;;
+  pos-modulith|virtual-threads|tuning)
+    CENARIOS="login dashboard ranking write-flow alunos-page"
+    ;;
+  *) echo "fase invalida: $FASE (baseline|pos-modulith|virtual-threads|tuning)"; exit 1 ;;
 esac
+
+if [ "$FASE" = tuning ]; then
+  export SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=50
+fi
 
 export FASE
 export LOADTEST_API_CONTEXT="${WORKTREE:+$WORKTREE/}api"
@@ -61,9 +69,8 @@ if curl -sf --max-time 2 http://localhost:8080/health >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$EVIDENCIAS"/{alunos,ranking,write-flow}
 rm -rf "${EVIDENCIAS:?}/"*
-mkdir -p "$EVIDENCIAS"/{alunos,ranking,write-flow}
+for CENARIO in $CENARIOS; do mkdir -p "$EVIDENCIAS/$CENARIO"; done
 
 echo "[loadtest] fase=$FASE — subindo postgres+api (projeto $PROJETO)"
 retry compose --profile loadtest up -d --build postgres api
@@ -92,10 +99,13 @@ compose --profile loadtest logs --no-color seed 2>&1 | tail -25 > "$EVIDENCIAS/s
 
 # Um `run` por cenario: minimo churn de daemon, sem reconciliacao do projeto,
 # saida propagada pelo sh -c do servico (0 ou 99-threshold => sucesso).
-for CENARIO in alunos ranking write-flow; do
+for CENARIO in $CENARIOS; do
   echo "[loadtest] === cenario: $CENARIO ==="
-  retry compose --profile loadtest run --rm --no-deps --service-ports "k6-$CENARIO"
-  compose --profile loadtest logs --no-color "k6-$CENARIO" > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 || true
+  # console do k6 direto do run (o --rm remove o container antes de um `logs`)
+  retry compose --profile loadtest run --rm --no-deps --service-ports "k6-$CENARIO" \
+    > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 \
+    || { tail -30 "$EVIDENCIAS/$CENARIO/k6-console.txt"; exit 1; }
+  tail -14 "$EVIDENCIAS/$CENARIO/k6-console.txt"
 done
 compose stop metrics >/dev/null 2>&1 || true
 
@@ -124,7 +134,7 @@ fi
 } > "$EVIDENCIAS/ambiente.txt"
 
 echo "[loadtest] === resumo da fase '$FASE' ==="
-for CENARIO in alunos ranking write-flow; do
+for CENARIO in $CENARIOS; do
   echo "--- $CENARIO ---"
   python3 - "$EVIDENCIAS/$CENARIO/resumo.json" <<'PY'
 import json, sys
