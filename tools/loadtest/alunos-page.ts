@@ -2,7 +2,7 @@ import http from 'k6/http'
 import { check } from 'k6'
 import { BASE_URL, rampaDeCarga } from './config.ts'
 
-export const options = rampaDeCarga
+export const options = rampaDeCarga('alunos-page')
 
 /**
  * Validacao da paginacao de GET /alunos (correcao executada a partir da

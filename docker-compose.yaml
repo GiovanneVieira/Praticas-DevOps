@@ -5,6 +5,8 @@ x-k6-cenario: &k6-cenario
   user: "${K6_UID:-1000}:${K6_GID:-1000}"
   environment:
     BASE_URL: http://api:8080
+    # Fase corrente para o rotulo do cenario no dashboard web ("fase · cenario")
+    FASE: ${FASE:-debug}
     # Web dashboard do k6: UI ao vivo em http://localhost:5665 durante o
     # cenario + export de HTML auto-contido (/out/dashboard.html) como
     # evidencia interativa versionada. Porta unica: os cenarios sao

@@ -2,7 +2,7 @@ import http from 'k6/http'
 import { check } from 'k6'
 import { BASE_URL, JSON_HEADERS, rampaDeCarga, uuidDoAluno } from './config.ts'
 
-export const options = rampaDeCarga
+export const options = rampaDeCarga('write-flow')
 
 /**
  * Cenario 3 do Desafio 1: fluxo critico de escrita.

@@ -2,7 +2,7 @@ import http from 'k6/http'
 import { check } from 'k6'
 import { BASE_URL, rampaDeCarga, uuidDoAluno } from './config.ts'
 
-export const options = rampaDeCarga
+export const options = rampaDeCarga('dashboard')
 
 /**
  * Cobertura dos modulos aluno/matricula/voucher/conquistas no caminho de

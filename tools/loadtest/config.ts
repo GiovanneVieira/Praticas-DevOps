@@ -2,28 +2,34 @@ import type { Options } from 'k6/options'
 
 /**
  * Configuração compartilhada dos cenários de carga do Desafio 1.
- * Fonte única do protocolo: rampa 10 -> 200 VUs (30s), platô de 2m,
- * descida de 30s. Thresholds são critérios de DIAGNÓSTICO — cruzar
- * p(95)<500ms ou rate<1% é achado de evidência, não falha de build
- * (o compose converte a saída 99 do k6 em sucesso).
+ * O rótulo do cenário leva a FASE (baseline/pos-modulith/virtual-threads/
+ * tuning) — o dashboard web do k6 exibe o nome do cenário no painel de
+ * execução, então a fase corrente fica visível ao vivo em localhost:5665.
+ * Thresholds são critérios de DIAGNÓSTICO — cruzar p(95)<500ms ou rate<1%
+ * é achado de evidência, não falha de build (o compose converte 99 em sucesso).
  */
-export const rampaDeCarga: Options = {
-  scenarios: {
-    ramp: {
-      executor: 'ramping-vus',
-      startVUs: 10,
-      stages: [
-        { duration: '30s', target: 200 },
-        { duration: '2m', target: 200 },
-        { duration: '30s', target: 0 },
-      ],
-      gracefulRampDown: '10s',
+const FASE = __ENV.FASE || 'sem-fase'
+
+export function rampaDeCarga(cenario: string): Options {
+  return {
+    scenarios: {
+      [`${FASE} · ${cenario}`]: {
+        executor: 'ramping-vus',
+        startVUs: 10,
+        stages: [
+          { duration: '30s', target: 200 },
+          { duration: '2m', target: 200 },
+          { duration: '30s', target: 0 },
+        ],
+        gracefulRampDown: '10s',
+      },
     },
-  },
-  thresholds: {
-    http_req_duration: ['p(95)<500'],
-    http_req_failed: ['rate<0.01'],
-  },
+    thresholds: {
+      http_req_duration: ['p(95)<500'],
+      http_req_failed: ['rate<0.01'],
+    },
+    tags: { fase: FASE, cenario },
+  }
 }
 
 export const BASE_URL = __ENV.BASE_URL || 'http://api:8080'

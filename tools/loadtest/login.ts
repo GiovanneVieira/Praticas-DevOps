@@ -2,7 +2,7 @@ import http from 'k6/http'
 import { check } from 'k6'
 import { BASE_URL, JSON_HEADERS, rampaDeCarga, uuidDoAluno } from './config.ts'
 
-export const options = rampaDeCarga
+export const options = rampaDeCarga('login')
 
 const SENHA = __ENV.SENHA_CARGA || '123456'
 
