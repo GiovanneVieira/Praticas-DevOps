@@ -36,6 +36,19 @@ export K6_UID="$(id -u)" K6_GID="$(id -g)"
 cd "$REPO_ROOT"
 compose() { docker compose -p "$PROJETO" "$@"; }
 
+# Docker 29/compose 5.3 exibem race transitória ("No such container") ao
+# criar+iniciar containers em rajada — retry curto contorna sem mascarar
+# falhas reais (3 tentativas, 5s entre elas).
+retry() {
+  local tentativa
+  for tentativa in 1 2 3; do
+    if "$@"; then return 0; fi
+    echo "[loadtest] tentativa $tentativa falhou; repetindo em 5s"
+    sleep 5
+  done
+  return 1
+}
+
 cleanup() {
   echo "[loadtest] encerrando..."
   compose down -v --remove-orphans >/dev/null 2>&1 || true
@@ -53,7 +66,7 @@ rm -rf "${EVIDENCIAS:?}/"*
 mkdir -p "$EVIDENCIAS"/{alunos,ranking,write-flow}
 
 echo "[loadtest] fase=$FASE — subindo postgres+api (projeto $PROJETO)"
-compose --profile loadtest up -d --build postgres api
+retry compose --profile loadtest up -d --build postgres api
 
 # JFR de pinning (evento jdk.VirtualThreadPinned, limiar 20ms) — so na fase VT
 if [ "$FASE" = virtual-threads ]; then
@@ -69,14 +82,14 @@ until [ "$(docker inspect --format '{{.State.Health.Status}}' "$(compose ps -q a
 done
 
 echo "[loadtest] subindo cadeia: seed -> cenarios sequenciais (+ metrics)"
-compose --profile loadtest up -d metrics
+retry compose --profile loadtest up -d metrics
 
 # Um `up` por cenario: --exit-code-from implica abort-on-container-exit, que
 # abortaria a cadeia inteira na primeira saida (o alunos) — os cenarios
 # precisam rodar em comandos separados, em sequencia.
 for CENARIO in alunos ranking write-flow; do
   echo "[loadtest] === cenario: $CENARIO ==="
-  compose --profile loadtest up --exit-code-from "k6-$CENARIO" "k6-$CENARIO"
+  retry compose --profile loadtest up --exit-code-from "k6-$CENARIO" "k6-$CENARIO"
   compose logs --no-color "k6-$CENARIO" > "$EVIDENCIAS/$CENARIO/k6-console.txt" 2>&1 || true
 done
 compose stop metrics >/dev/null 2>&1 || true
