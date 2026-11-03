@@ -1,18 +1,38 @@
+x-k6-cenario: &k6-cenario
+  profiles: [loadtest]
+  restart: "no"
+  image: grafana/k6:latest
+  user: "${K6_UID:-1000}:${K6_GID:-1000}"
+  environment:
+    BASE_URL: http://api:8080
+  volumes:
+    - ./tools/loadtest:/scripts:ro
+
 services:
   api:
     build:
-      context: api
+      # Contexto parametrizável: campanhas de baseline usam um worktree do
+      # commit pré-modularização via LOADTEST_API_CONTEXT (tools/loadtest).
+      context: ${LOADTEST_API_CONTEXT:-api}
       dockerfile: dockerfile
       target: dev
     container_name: devops_api
     env_file:
       - .env.api
     environment:
-      # Overrides de carga (Fase 2/4/5 do Desafio 1): rodadas k6 sobem com
-      # SPRING_JPA_SHOW_SQL=false; apendice de virtual threads sobe com
+      # Overrides de carga (Desafio 1): campanhas k6 sobem com
+      # SPRING_JPA_SHOW_SQL=false; a fase virtual-threads sobe com
       # SPRING_THREADS_VIRTUAL_ENABLED=true. Defaults preservam o dev diario.
       - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL:-true}
       - SPRING_THREADS_VIRTUAL_ENABLED=${SPRING_THREADS_VIRTUAL_ENABLED:-false}
+    healthcheck:
+      # Imagem dev (temurin alpine) tem busybox wget; start_period generoso
+      # porque o dev target compila dentro do container a cada boot.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 240s
     ports:
       - "8080:8080"
       - "5005:5005"
@@ -70,6 +90,105 @@ services:
       timeout: 5s
       retries: 5
 
+  # ==========================================================================
+  # Harness de carga do Desafio 1 (RF01/RF02) — perfil dedicado:
+  #   docker compose -p pratica5-loadtest --profile loadtest up ...
+  # Isolado por nome de projeto (-p): volumes/rede próprios; o `down -v` das
+  # campanhas nunca toca o banco do dev. Orquestrado por tools/loadtest/run-loadtest.sh.
+  # Cadeia: seed (após schema do Hibernate) -> k6-alunos -> k6-ranking -> k6-writeflow.
+  # ==========================================================================
+  seed:
+    profiles: [loadtest]
+    restart: "no"
+    image: postgres:16-alpine
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: admin
+      PGDATABASE: devops
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo "[seed] aguardando schema do Hibernate..."
+        until psql -tAc "select 1 from information_schema.tables where table_name='alunos'" | grep -q 1; do
+          sleep 2
+        done
+        psql -v ON_ERROR_STOP=1 -f /seed.sql
+    volumes:
+      - ./tools/loadtest/seed.sql:/seed.sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  k6-alunos:
+    <<: *k6-cenario
+    container_name: loadtest_k6_alunos
+    volumes:
+      - ./tools/loadtest:/scripts:ro
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/alunos:/out
+    entrypoint: ["sh", "-c"]
+    # saida 99 (threshold cruzado) e achado, nao erro de execucao
+    command:
+      - >-
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/alunos.ts;
+        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  k6-ranking:
+    <<: *k6-cenario
+    container_name: loadtest_k6_ranking
+    volumes:
+      - ./tools/loadtest:/scripts:ro
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/ranking:/out
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/ranking.ts;
+        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+    depends_on:
+      k6-alunos:
+        condition: service_completed_successfully
+
+  k6-writeflow:
+    <<: *k6-cenario
+    container_name: loadtest_k6_writeflow
+    volumes:
+      - ./tools/loadtest:/scripts:ro
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}/write-flow:/out
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        k6 run -o json=/out/resultado.json --summary-export=/out/resumo.json /scripts/write-flow.ts;
+        ec=$$?; if [ $$ec -ne 0 ] && [ $$ec -ne 99 ]; then exit $$ec; fi
+    depends_on:
+      k6-ranking:
+        condition: service_completed_successfully
+
+  metrics:
+    profiles: [loadtest]
+    restart: "no"
+    image: curlimages/curl:latest
+    environment:
+      BASE_URL: http://api:8080
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        while true; do
+          ts=$$(date -Iseconds)
+          for m in hikaricp.connections.active hikaricp.connections.pending hikaricp.connections.max tomcat.threads.busy tomcat.threads.current; do
+            echo "$$ts $$m $$(curl -sf $$BASE_URL/actuator/metrics/$$m)" >> /out/metricas-actuator.txt
+          done
+          sleep 5
+        done
+    volumes:
+      - ./docs/arquitetura/evidencias/desafio1/${FASE:-debug}:/out
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   postgres_data:
-
