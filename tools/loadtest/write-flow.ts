@@ -1,6 +1,6 @@
 import http from 'k6/http'
 import { check } from 'k6'
-import { BASE_URL, JSON_HEADERS, rampaDeCarga, uuidDoAluno } from './config'
+import { BASE_URL, JSON_HEADERS, rampaDeCarga, uuidDoAluno } from './config.ts'
 
 export const options = rampaDeCarga
 

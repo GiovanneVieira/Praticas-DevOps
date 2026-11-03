@@ -9,6 +9,9 @@
 -- OBS: password e placeholder (carga nao faz login; endpoints sao permitAll).
 -- ============================================================================
 
+-- Idempotente: re-execucoes (accidentais ou manuais) recomecam do zero.
+TRUNCATE alunos, matriculas, cursos, vouchers, ranking_entries, conquistas_concedidas, event_publication;
+
 SELECT setseed(0.42);
 
 WITH progresso AS (

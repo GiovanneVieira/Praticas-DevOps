@@ -81,8 +81,14 @@ until [ "$(docker inspect --format '{{.State.Health.Status}}' "$(compose ps -q a
   sleep 5
 done
 
-echo "[loadtest] subindo cadeia: seed -> cenarios sequenciais (+ metrics)"
+echo "[loadtest] subindo metrics + seed"
 retry compose --profile loadtest up -d metrics
+
+# Seed como FASE (nao dependencia por cenario): `up <cenario>` reiniciaria o
+# servico one-shot ja concluido e o seed (nao idempotente a nivel de INSERT)
+# falharia por chave duplicada. Roda uma unica vez, ate completar.
+compose --profile loadtest up --exit-code-from seed seed
+compose logs --no-color seed 2>&1 | tail -25 > "$EVIDENCIAS/seed-output.txt" || true
 
 # Um `up` por cenario: --exit-code-from implica abort-on-container-exit, que
 # abortaria a cadeia inteira na primeira saida (o alunos) — os cenarios
